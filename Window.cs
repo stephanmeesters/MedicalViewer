@@ -3,6 +3,7 @@ using OpenTK.Graphics.OpenGL4;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using OpenTK.Windowing.Desktop;
+using OpenTK.Mathematics;
 
 namespace LearnOpenTK
 {
@@ -17,9 +18,41 @@ namespace LearnOpenTK
         // OpenGL only supports rendering in 3D, so to create a flat triangle, the Z coordinate will be kept as 0.
         private readonly float[] _vertices =
         {
-            -0.5f, -0.5f, 0.0f, // Bottom-left vertex
-             0.5f, -0.5f, 0.0f, // Bottom-right vertex
-             0.0f,  0.5f, 0.0f  // Top vertex
+            // first triangle
+             -0.5f+0.5f,  0.5f+0.5f, 0.0f, 1.0f, 1.0f, 0.2f, 1.0f, // top right
+             -0.5f+-0.5f, 0.5f+-0.5f, 0.0f, 0.0f, 0.0f, 0.2f, 1.0f, // bottom left
+            -0.5f+-0.5f,  0.5f+0.5f, 0.0f, 0.0f, 1.0f, 0.2f, 1.0f, // top left
+            // second triangle
+            -0.5f+0.5f, 0.5f+0.5f, 0.0f, 1.0f, 1.0f, 0.2f, 1.0f,  // top right
+             -0.5f+-0.5f, 0.5f+-0.5f, 0.0f, 0.0f, 0.0f, 0.2f, 1.0f,  // bottom left
+            -0.5f+0.5f,  0.5f+-0.5f, 0.0f, 1.0f, 0.0f, 0.2f, 1.0f,   // bottom right
+
+            // first triangle
+             0.5f+0.5f,  0.5f+0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 2.0f, // top right
+             0.5f+-0.5f, 0.5f+-0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 2.0f, // bottom left
+            0.5f+-0.5f,  0.5f+0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 2.0f, // top left
+            // second triangle
+            0.5f+0.5f, 0.5f+0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 2.0f,  // top right
+             0.5f+-0.5f, 0.5f+-0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 2.0f,  // bottom left
+            0.5f+0.5f,  0.5f+-0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 2.0f,   // bottom right
+
+            // first triangle
+             -0.5f+0.5f,  -0.5f+0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 3.0f, // top right
+             -0.5f+-0.5f, -0.5f+-0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 3.0f, // bottom left
+            -0.5f+-0.5f,  -0.5f+0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 3.0f, // top left
+            // second triangle
+            -0.5f+0.5f, -0.5f+0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 3.0f,  // top right
+             -0.5f+-0.5f, -0.5f+-0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 3.0f,  // bottom left
+            -0.5f+0.5f,  -0.5f+-0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 3.0f,   // bottom right
+
+            // first triangle
+             0.5f+0.5f,  -0.5f+0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 4.0f, // top right
+             0.5f+-0.5f, -0.5f+-0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 4.0f, // bottom left
+            0.5f+-0.5f,  -0.5f+0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 4.0f, // top left
+            // second triangle
+            0.5f+0.5f, -0.5f+0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 4.0f,  // top right
+             0.5f+-0.5f, -0.5f+-0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 4.0f,  // bottom left
+            0.5f+0.5f,  -0.5f+-0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 4.0f   // bottom right
         };
 
         // These are the handles to OpenGL objects. A handle is an integer representing where the object lives on the
@@ -36,6 +69,12 @@ namespace LearnOpenTK
         // What shaders are and what they're used for will be explained later in this tutorial.
         private Shader _shader;
 
+        private Texture3D _tex3D;
+
+        private Camera _camera;
+
+        private float curSlice = 0;
+
         public Window(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings)
             : base(gameWindowSettings, nativeWindowSettings)
         {
@@ -45,11 +84,28 @@ namespace LearnOpenTK
         protected override void OnLoad()
         {
             base.OnLoad();
-
             
-            GL.ClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+            GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
-            Texture3D tex = Texture3D.LoadFromFile("F:/Medical3DApplication/App/MedViewer/Data/ct.nii.gz");
+            _tex3D = Texture3D.LoadFromFile("Data/test.nii");
+            _shader = new Shader("Shaders/vshader.glsl", "Shaders/fshader.glsl");
+
+            _vertexBufferObject = GL.GenBuffer();
+            GL.BindBuffer(BufferTarget.ArrayBuffer, _vertexBufferObject);
+            GL.BufferData(BufferTarget.ArrayBuffer, _vertices.Length * sizeof(float), _vertices, BufferUsageHint.StaticDraw);
+
+            _vertexArrayObject = GL.GenVertexArray();
+            GL.BindVertexArray(_vertexArrayObject);
+
+            var positionLocation = _shader.GetAttribLocation("vertex");
+            GL.EnableVertexAttribArray(positionLocation);
+            GL.VertexAttribPointer(positionLocation, 3, VertexAttribPointerType.Float, false, 7 * sizeof(float), 0);
+
+            var texCoordLocation = _shader.GetAttribLocation("texcoord");
+            GL.EnableVertexAttribArray(texCoordLocation);
+            GL.VertexAttribPointer(texCoordLocation, 4, VertexAttribPointerType.Float, false, 7 * sizeof(float), 3 * sizeof(float));
+
+            _camera = new Camera(Vector3.UnitZ * 3, Size.X / (float)Size.Y);
         }
 
         // Now that initialization is done, let's create our render loop.
@@ -57,7 +113,25 @@ namespace LearnOpenTK
         {
             base.OnRenderFrame(e);
 
-           
+            GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+
+            GL.BindVertexArray(_vertexArrayObject);
+            _tex3D.Use(TextureUnit.Texture0);
+            _shader.Use();
+
+            //_shader.SetMatrix4("view", _camera.GetViewMatrix());
+            //_shader.SetMatrix4("projMatrix", _camera.GetProjectionMatrix());
+            //_shader.SetVector3("viewPos", _camera.Position);
+            
+            curSlice += (float)0.001;
+            if (curSlice > 1.0)
+                curSlice = 0;
+            _shader.SetFloat("slice", curSlice);
+
+            GL.DrawArrays(PrimitiveType.Triangles, 0, 18);
+
+            SwapBuffers();
         }
 
         protected override void OnUpdateFrame(FrameEventArgs e)

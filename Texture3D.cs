@@ -24,19 +24,14 @@ namespace LearnOpenTK.Common
             reader.SetFileName(path);
             Image image = reader.Execute();
 
-            var buffer = image.GetBufferAsUInt16();
+            var buffer = image.GetBufferAsUInt8();
             var size = image.GetSize();
             uint xs = size[0];
             uint ys = size[1];
             uint zs = size[2];
-            //unsafe
-           // {
-           //     byte* src = (byte*)buffer.ToPointer();
-            //}
-
             GL.TexImage3D(TextureTarget.Texture3D,
                     0,
-                    PixelInternalFormat.R16ui,
+                    PixelInternalFormat.R8Snorm,
                     (int)xs,
                     (int)ys,
                     (int)zs,
@@ -45,13 +40,11 @@ namespace LearnOpenTK.Common
                     PixelType.UnsignedShort,
                     buffer);
 
-            GL.TexParameter(TextureTarget.Texture3D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
-            GL.TexParameter(TextureTarget.Texture3D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
+            GL.TexParameter(TextureTarget.Texture3D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
+            GL.TexParameter(TextureTarget.Texture3D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
 
             GL.TexParameter(TextureTarget.Texture3D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.Repeat);
             GL.TexParameter(TextureTarget.Texture3D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.Repeat);
-
-            GL.GenerateMipmap(GenerateMipmapTarget.Texture3D);
 
             return new Texture3D(handle);
         }
@@ -68,7 +61,7 @@ namespace LearnOpenTK.Common
         public void Use(TextureUnit unit)
         {
             GL.ActiveTexture(unit);
-            GL.BindTexture(TextureTarget.Texture2D, Handle);
+            GL.BindTexture(TextureTarget.Texture3D, Handle);
         }
     }
 }
