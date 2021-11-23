@@ -64,52 +64,6 @@ namespace LearnOpenTK
             -0.5f,  0.5f, -0.5f,  
         };
 
-        //private readonly float[] _vertices =
-        //{
-        //    // Positions          
-        //    -0.5f, -0.5f, -0.5f,
-        //     0.5f, -0.5f, -0.5f,
-        //     0.5f,  0.5f, -0.5f,
-        //     0.5f,  0.5f, -0.5f,
-        //    -0.5f,  0.5f, -0.5f,
-        //    -0.5f, -0.5f, -0.5f,
-
-        //    0.5f, -0.5f,  0.5f,
-        //    -0.5f, -0.5f,  0.5f,
-        //     0.5f,  0.5f,  0.5f,
-        //     -0.5f,  0.5f,  0.5f,
-        //     0.5f,  0.5f,  0.5f,
-        //    -0.5f, -0.5f,  0.5f,
-
-        //    -0.5f,  0.5f, -0.5f,
-        //    -0.5f,  0.5f,  0.5f,
-        //    -0.5f, -0.5f, -0.5f,
-        //    -0.5f, -0.5f,  0.5f,
-        //    -0.5f, -0.5f, -0.5f,
-        //    -0.5f,  0.5f,  0.5f,
-
-        //     0.5f,  0.5f,  0.5f,
-        //     0.5f,  0.5f, -0.5f,
-        //     0.5f, -0.5f, -0.5f,
-        //     0.5f, -0.5f, -0.5f,
-        //     0.5f, -0.5f,  0.5f,
-        //     0.5f,  0.5f,  0.5f,
-
-        //     0.5f, -0.5f, -0.5f,
-        //    -0.5f, -0.5f, -0.5f,
-        //     0.5f, -0.5f,  0.5f,
-        //     -0.5f, -0.5f,  0.5f,
-        //     0.5f, -0.5f,  0.5f,
-        //    -0.5f, -0.5f, -0.5f,
-
-        //    -0.5f,  0.5f, -0.5f,
-        //     0.5f,  0.5f, -0.5f,
-        //     0.5f,  0.5f,  0.5f,
-        //     0.5f,  0.5f,  0.5f,
-        //    -0.5f,  0.5f,  0.5f,
-        //    -0.5f,  0.5f, -0.5f,
-        //};
-
         // These are the handles to OpenGL objects. A handle is an integer representing where the object lives on the
         // graphics card. Consider them sort of like a pointer; we can't do anything with them directly, but we can
         // send them to OpenGL functions that need them.
@@ -138,6 +92,7 @@ namespace LearnOpenTK
         {
         }
 
+
         // Now, we start initializing OpenGL.
         protected override void OnLoad()
         {
@@ -145,8 +100,9 @@ namespace LearnOpenTK
             
             GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
-            _tex3D = Texture3D.LoadFromFile("Data/test.nii");
+            _tex3D = Texture3D.LoadFromFile("Data/ct_anat_short.nii.gz");
             Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
+
             _shader = new Shader("Shaders/vshader.glsl", "Shaders/fshader.glsl");
             Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
 
@@ -164,10 +120,12 @@ namespace LearnOpenTK
             GL.VertexAttribPointer(positionLocation, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float), 0);
             Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
 
-            Vector3 camPos = new Vector3();
-            camPos.X = 0.5f;
-            camPos.Y = 0.5f;
-            camPos.Z = 3.0f;
+            Vector3 camPos = new Vector3
+            {
+                X = 0.5f,
+                Y = 0.5f,
+                Z = 3.0f
+            };
             _camera = new Camera(camPos, Size.X / (float)Size.Y);
             CursorGrabbed = true;
 
@@ -198,6 +156,11 @@ namespace LearnOpenTK
             _shader.SetMatrix4("view", _camera.GetViewMatrix());
             _shader.SetMatrix4("projection", _camera.GetProjectionMatrix());
             Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
+
+            double norm = 25;// 1.0 / (_tex3D.ImageHighestIntensity - _tex3D.ImageLowestIntensity);
+            //_shader.SetFloat("minIntensity", (float)_tex3D.ImageLowestIntensity);
+           // _shader.SetFloat("maxIntensity", (float)_tex3D.ImageHighestIntensity);
+            _shader.SetFloat("norm", (float)norm);
 
             GL.DrawArrays(PrimitiveType.Triangles, 0, 36);
             Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);

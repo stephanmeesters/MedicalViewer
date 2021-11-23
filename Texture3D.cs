@@ -2,6 +2,7 @@
 using PixelFormat = OpenTK.Graphics.OpenGL4.PixelFormat;
 using System;
 using itk.simple;
+using System.Diagnostics;
 
 namespace LearnOpenTK.Common
 {
@@ -9,6 +10,9 @@ namespace LearnOpenTK.Common
     public class Texture3D
     {
         public readonly int Handle;
+
+        public readonly double ImageHighestIntensity;
+        public readonly double ImageLowestIntensity;
 
         public static Texture3D LoadFromFile(string path)
         {
@@ -24,21 +28,34 @@ namespace LearnOpenTK.Common
             reader.SetFileName(path);
             Image image = reader.Execute();
 
-            var buffer = image.GetBufferAsUInt8();
+            MinimumMaximumImageFilter filter = new MinimumMaximumImageFilter();
+            filter.Execute(image);
+            double minIntensity = (filter.GetMinimum() + 32767.0) / 65535.0;
+            double maxIntensity = (filter.GetMaximum() + 32767.0) / 65535.0;
+            filter.Dispose();
+
+            //CastImageFilter cast = new CastImageFilter();
+            //cast.SetOutputPixelType(PixelIDValueEnum.sitkInt32);
+            //Image destImage = cast.Execute(image);
+
+            var buffer = image.GetBufferAsInt16();
             var size = image.GetSize();
-            uint xs = size[0];
-            uint ys = size[1];
-            uint zs = size[2];
+            int xs = (int)size[0];
+            int ys = (int)size[1];
+            int zs = (int)size[2];
             GL.TexImage3D(TextureTarget.Texture3D,
                     0,
-                    PixelInternalFormat.R8Snorm,
-                    (int)xs,
-                    (int)ys,
-                    (int)zs,
+                    PixelInternalFormat.R16,
+                    xs,
+                    ys,
+                    zs,
                     0,
                     PixelFormat.Red,
-                    PixelType.UnsignedShort,
+                    PixelType.Short,
                     buffer);
+
+            var error = GL.GetError();
+            Debug.Assert(error == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
 
             GL.TexParameter(TextureTarget.Texture3D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
             GL.TexParameter(TextureTarget.Texture3D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
@@ -47,12 +64,14 @@ namespace LearnOpenTK.Common
             GL.TexParameter(TextureTarget.Texture3D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToBorder);
             GL.TexParameter(TextureTarget.Texture3D, TextureParameterName.TextureWrapR, (int)TextureWrapMode.ClampToBorder);
 
-            return new Texture3D(handle);
+            return new Texture3D(handle, minIntensity, maxIntensity);
         }
 
-        public Texture3D(int glHandle)
+        public Texture3D(int glHandle, double minIntensity, double maxIntensity)
         {
             Handle = glHandle;
+            ImageLowestIntensity = minIntensity;
+            ImageHighestIntensity = maxIntensity;
         }
 
         // Activate texture
