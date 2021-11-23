@@ -10,7 +10,7 @@ namespace LearnOpenTK
         {
             var nativeWindowSettings = new NativeWindowSettings()
             {
-                Size = new Vector2i(800, 600),
+                Size = new Vector2i(1200, 1200),
                 Title = "MedViewer",
                 // This is needed to run on macos
                 Flags = ContextFlags.ForwardCompatible,

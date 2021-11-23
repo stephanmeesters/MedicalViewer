@@ -4,6 +4,7 @@ using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Mathematics;
+using System.Diagnostics;
 
 namespace LearnOpenTK
 {
@@ -73,7 +74,11 @@ namespace LearnOpenTK
 
         private Camera _camera;
 
-        private float curSlice = 0;
+        private Stopwatch _timer;
+
+        private bool _firstMove = true;
+
+        private Vector2 _lastPos;
 
         public Window(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings)
             : base(gameWindowSettings, nativeWindowSettings)
@@ -106,6 +111,10 @@ namespace LearnOpenTK
             GL.VertexAttribPointer(texCoordLocation, 4, VertexAttribPointerType.Float, false, 7 * sizeof(float), 3 * sizeof(float));
 
             _camera = new Camera(Vector3.UnitZ * 3, Size.X / (float)Size.Y);
+            CursorGrabbed = true;
+
+            _timer = new Stopwatch();
+            _timer.Start();
         }
 
         // Now that initialization is done, let's create our render loop.
@@ -120,14 +129,12 @@ namespace LearnOpenTK
             _tex3D.Use(TextureUnit.Texture0);
             _shader.Use();
 
-            //_shader.SetMatrix4("view", _camera.GetViewMatrix());
-            //_shader.SetMatrix4("projMatrix", _camera.GetProjectionMatrix());
-            //_shader.SetVector3("viewPos", _camera.Position);
-            
-            curSlice += (float)0.001;
-            if (curSlice > 1.0)
-                curSlice = 0;
-            _shader.SetFloat("slice", curSlice);
+            //_shader.SetMatrix4("model", Matrix4.Identity);
+            _shader.SetMatrix4("view", _camera.GetViewMatrix());
+            _shader.SetMatrix4("projection", _camera.GetProjectionMatrix());
+
+            double timeValue = _timer.Elapsed.TotalSeconds;
+            _shader.SetFloat("slice", (float)((timeValue % 10.0) / 10.0) );
 
             GL.DrawArrays(PrimitiveType.Triangles, 0, 18);
 
@@ -138,11 +145,61 @@ namespace LearnOpenTK
         {
             base.OnUpdateFrame(e);
 
+            if (!IsFocused)
+            {
+                return;
+            }
+
             var input = KeyboardState;
 
             if (input.IsKeyDown(Keys.Escape))
             {
                 Close();
+            }
+
+            const float cameraSpeed = 1.5f;
+            const float sensitivity = 0.2f;
+
+            if (input.IsKeyDown(Keys.W))
+            {
+                _camera.Position += _camera.Front * cameraSpeed * (float)e.Time; // Forward
+            }
+            if (input.IsKeyDown(Keys.S))
+            {
+                _camera.Position -= _camera.Front * cameraSpeed * (float)e.Time; // Backwards
+            }
+            if (input.IsKeyDown(Keys.A))
+            {
+                _camera.Position -= _camera.Right * cameraSpeed * (float)e.Time; // Left
+            }
+            if (input.IsKeyDown(Keys.D))
+            {
+                _camera.Position += _camera.Right * cameraSpeed * (float)e.Time; // Right
+            }
+            if (input.IsKeyDown(Keys.Space))
+            {
+                _camera.Position += _camera.Up * cameraSpeed * (float)e.Time; // Up
+            }
+            if (input.IsKeyDown(Keys.LeftShift))
+            {
+                _camera.Position -= _camera.Up * cameraSpeed * (float)e.Time; // Down
+            }
+
+            var mouse = MouseState;
+
+            if (_firstMove)
+            {
+                _lastPos = new Vector2(mouse.X, mouse.Y);
+                _firstMove = false;
+            }
+            else
+            {
+                var deltaX = mouse.X - _lastPos.X;
+                var deltaY = mouse.Y - _lastPos.Y;
+                _lastPos = new Vector2(mouse.X, mouse.Y);
+
+                _camera.Yaw += deltaX * sensitivity;
+                _camera.Pitch -= deltaY * sensitivity;
             }
         }
 

@@ -1,11 +1,16 @@
 #version 330
+
 in vec4 texCoordSampled;
+
 out highp vec4 fragColor;
-//uniform sampler2D sampler;
+
 uniform sampler3D sampler;
 uniform float slice;
+
 vec4 color;
-void main() {
+
+void main()
+{
     if(texCoordSampled.w == 1.0f)
     {
         color = texture(sampler, vec3(texCoordSampled.x, texCoordSampled.y, slice)).rrrr;
@@ -27,6 +32,5 @@ void main() {
         color = texture(sampler, texCoordSampled.xyz).rrrr;
     }
 
-   //color = texture(sampler, vec3(texCoordSampled.x, texCoordSampled.y, slice)).rrrr;
-   fragColor = vec4(color.x, color.y, color.z, 1.0);//vec4(texCoordSampled.x, texCoordSampled.y, 1.0, 1.0);
+    fragColor = vec4(color.x, color.y, color.z, 1.0);
 }
