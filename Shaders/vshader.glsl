@@ -1,8 +1,7 @@
-#version 330
-layout(location = 0) in vec4 vertex;
-layout(location = 1) in vec4 texcoord;
+#version 400
+layout(location = 0) in vec3 vertex;
 
-out vec4 texCoordSampled;
+out vec3 FragPos;
 
 uniform mat4 model;
 uniform mat4 view;
@@ -10,6 +9,6 @@ uniform mat4 projection;
 
 void main()
 {
-    texCoordSampled = texcoord;
-    gl_Position = vertex * view * projection;
+    gl_Position = vec4(vertex, 1.0) * model * view * projection;
+    FragPos = vec3(vec4(vertex, 1.0) * model);
 }

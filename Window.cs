@@ -5,6 +5,7 @@ using OpenTK.Windowing.GraphicsLibraryFramework;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Mathematics;
 using System.Diagnostics;
+using System;
 
 namespace LearnOpenTK
 {
@@ -19,42 +20,95 @@ namespace LearnOpenTK
         // OpenGL only supports rendering in 3D, so to create a flat triangle, the Z coordinate will be kept as 0.
         private readonly float[] _vertices =
         {
-            // first triangle
-             -0.5f+0.5f,  0.5f+0.5f, 0.0f, 1.0f, 1.0f, 0.2f, 1.0f, // top right
-             -0.5f+-0.5f, 0.5f+-0.5f, 0.0f, 0.0f, 0.0f, 0.2f, 1.0f, // bottom left
-            -0.5f+-0.5f,  0.5f+0.5f, 0.0f, 0.0f, 1.0f, 0.2f, 1.0f, // top left
-            // second triangle
-            -0.5f+0.5f, 0.5f+0.5f, 0.0f, 1.0f, 1.0f, 0.2f, 1.0f,  // top right
-             -0.5f+-0.5f, 0.5f+-0.5f, 0.0f, 0.0f, 0.0f, 0.2f, 1.0f,  // bottom left
-            -0.5f+0.5f,  0.5f+-0.5f, 0.0f, 1.0f, 0.0f, 0.2f, 1.0f,   // bottom right
+            // Positions          
+            -0.5f, -0.5f, -0.5f,  
+             0.5f, -0.5f, -0.5f,  
+             0.5f,  0.5f, -0.5f,  
+             0.5f,  0.5f, -0.5f,  
+            -0.5f,  0.5f, -0.5f,  
+            -0.5f, -0.5f, -0.5f,  
 
-            // first triangle
-             0.5f+0.5f,  0.5f+0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 2.0f, // top right
-             0.5f+-0.5f, 0.5f+-0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 2.0f, // bottom left
-            0.5f+-0.5f,  0.5f+0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 2.0f, // top left
-            // second triangle
-            0.5f+0.5f, 0.5f+0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 2.0f,  // top right
-             0.5f+-0.5f, 0.5f+-0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 2.0f,  // bottom left
-            0.5f+0.5f,  0.5f+-0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 2.0f,   // bottom right
+            0.5f, -0.5f,  0.5f,  
+            -0.5f, -0.5f,  0.5f,  
+             0.5f,  0.5f,  0.5f,  
+             -0.5f,  0.5f,  0.5f, 
+             0.5f,  0.5f,  0.5f,  
+            -0.5f, -0.5f,  0.5f,  
 
-            // first triangle
-             -0.5f+0.5f,  -0.5f+0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 3.0f, // top right
-             -0.5f+-0.5f, -0.5f+-0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 3.0f, // bottom left
-            -0.5f+-0.5f,  -0.5f+0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 3.0f, // top left
-            // second triangle
-            -0.5f+0.5f, -0.5f+0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 3.0f,  // top right
-             -0.5f+-0.5f, -0.5f+-0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 3.0f,  // bottom left
-            -0.5f+0.5f,  -0.5f+-0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 3.0f,   // bottom right
+            -0.5f,  0.5f, -0.5f, 
+            -0.5f,  0.5f,  0.5f, 
+            -0.5f, -0.5f, -0.5f, 
+            -0.5f, -0.5f,  0.5f, 
+            -0.5f, -0.5f, -0.5f, 
+            -0.5f,  0.5f,  0.5f, 
 
-            // first triangle
-             0.5f+0.5f,  -0.5f+0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 4.0f, // top right
-             0.5f+-0.5f, -0.5f+-0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 4.0f, // bottom left
-            0.5f+-0.5f,  -0.5f+0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 4.0f, // top left
-            // second triangle
-            0.5f+0.5f, -0.5f+0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 4.0f,  // top right
-             0.5f+-0.5f, -0.5f+-0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 4.0f,  // bottom left
-            0.5f+0.5f,  -0.5f+-0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 4.0f   // bottom right
+             0.5f,  0.5f,  0.5f,  
+             0.5f,  0.5f, -0.5f,  
+             0.5f, -0.5f, -0.5f,  
+             0.5f, -0.5f, -0.5f,  
+             0.5f, -0.5f,  0.5f,  
+             0.5f,  0.5f,  0.5f,  
+
+             0.5f, -0.5f, -0.5f,  
+            -0.5f, -0.5f, -0.5f,  
+             0.5f, -0.5f,  0.5f,  
+             -0.5f, -0.5f,  0.5f, 
+             0.5f, -0.5f,  0.5f,  
+            -0.5f, -0.5f, -0.5f,  
+
+            -0.5f,  0.5f, -0.5f,  
+             0.5f,  0.5f, -0.5f,  
+             0.5f,  0.5f,  0.5f,  
+             0.5f,  0.5f,  0.5f,  
+            -0.5f,  0.5f,  0.5f,  
+            -0.5f,  0.5f, -0.5f,  
         };
+
+        //private readonly float[] _vertices =
+        //{
+        //    // Positions          
+        //    -0.5f, -0.5f, -0.5f,
+        //     0.5f, -0.5f, -0.5f,
+        //     0.5f,  0.5f, -0.5f,
+        //     0.5f,  0.5f, -0.5f,
+        //    -0.5f,  0.5f, -0.5f,
+        //    -0.5f, -0.5f, -0.5f,
+
+        //    0.5f, -0.5f,  0.5f,
+        //    -0.5f, -0.5f,  0.5f,
+        //     0.5f,  0.5f,  0.5f,
+        //     -0.5f,  0.5f,  0.5f,
+        //     0.5f,  0.5f,  0.5f,
+        //    -0.5f, -0.5f,  0.5f,
+
+        //    -0.5f,  0.5f, -0.5f,
+        //    -0.5f,  0.5f,  0.5f,
+        //    -0.5f, -0.5f, -0.5f,
+        //    -0.5f, -0.5f,  0.5f,
+        //    -0.5f, -0.5f, -0.5f,
+        //    -0.5f,  0.5f,  0.5f,
+
+        //     0.5f,  0.5f,  0.5f,
+        //     0.5f,  0.5f, -0.5f,
+        //     0.5f, -0.5f, -0.5f,
+        //     0.5f, -0.5f, -0.5f,
+        //     0.5f, -0.5f,  0.5f,
+        //     0.5f,  0.5f,  0.5f,
+
+        //     0.5f, -0.5f, -0.5f,
+        //    -0.5f, -0.5f, -0.5f,
+        //     0.5f, -0.5f,  0.5f,
+        //     -0.5f, -0.5f,  0.5f,
+        //     0.5f, -0.5f,  0.5f,
+        //    -0.5f, -0.5f, -0.5f,
+
+        //    -0.5f,  0.5f, -0.5f,
+        //     0.5f,  0.5f, -0.5f,
+        //     0.5f,  0.5f,  0.5f,
+        //     0.5f,  0.5f,  0.5f,
+        //    -0.5f,  0.5f,  0.5f,
+        //    -0.5f,  0.5f, -0.5f,
+        //};
 
         // These are the handles to OpenGL objects. A handle is an integer representing where the object lives on the
         // graphics card. Consider them sort of like a pointer; we can't do anything with them directly, but we can
@@ -74,7 +128,6 @@ namespace LearnOpenTK
 
         private Camera _camera;
 
-        private Stopwatch _timer;
 
         private bool _firstMove = true;
 
@@ -93,50 +146,61 @@ namespace LearnOpenTK
             GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
             _tex3D = Texture3D.LoadFromFile("Data/test.nii");
+            Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
             _shader = new Shader("Shaders/vshader.glsl", "Shaders/fshader.glsl");
+            Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
 
             _vertexBufferObject = GL.GenBuffer();
             GL.BindBuffer(BufferTarget.ArrayBuffer, _vertexBufferObject);
             GL.BufferData(BufferTarget.ArrayBuffer, _vertices.Length * sizeof(float), _vertices, BufferUsageHint.StaticDraw);
+            Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
 
             _vertexArrayObject = GL.GenVertexArray();
             GL.BindVertexArray(_vertexArrayObject);
+            Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
 
             var positionLocation = _shader.GetAttribLocation("vertex");
             GL.EnableVertexAttribArray(positionLocation);
-            GL.VertexAttribPointer(positionLocation, 3, VertexAttribPointerType.Float, false, 7 * sizeof(float), 0);
+            GL.VertexAttribPointer(positionLocation, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float), 0);
+            Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
 
-            var texCoordLocation = _shader.GetAttribLocation("texcoord");
-            GL.EnableVertexAttribArray(texCoordLocation);
-            GL.VertexAttribPointer(texCoordLocation, 4, VertexAttribPointerType.Float, false, 7 * sizeof(float), 3 * sizeof(float));
-
-            _camera = new Camera(Vector3.UnitZ * 3, Size.X / (float)Size.Y);
+            Vector3 camPos = new Vector3();
+            camPos.X = 0.5f;
+            camPos.Y = 0.5f;
+            camPos.Z = 3.0f;
+            _camera = new Camera(camPos, Size.X / (float)Size.Y);
             CursorGrabbed = true;
 
-            _timer = new Stopwatch();
-            _timer.Start();
+            GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+            GL.Enable(EnableCap.CullFace);
+            GL.CullFace(CullFaceMode.Front);
         }
 
         // Now that initialization is done, let's create our render loop.
         protected override void OnRenderFrame(FrameEventArgs e)
         {
             base.OnRenderFrame(e);
-
-            GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+            
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
             GL.BindVertexArray(_vertexArrayObject);
             _tex3D.Use(TextureUnit.Texture0);
             _shader.Use();
+            Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
 
-            //_shader.SetMatrix4("model", Matrix4.Identity);
+            float time = DateTime.Now.Second + DateTime.Now.Millisecond / 1000f;
+            Matrix4 model = Matrix4.Identity;
+            model *= Matrix4.CreateScale(0.5f);
+            model *= Matrix4.CreateTranslation(0.5f, 0.5f, 0.5f);
+            model *= Matrix4.CreateTranslation((float)Math.Sin(time)*0.25f, 0.0f, 0.0f);
+
+            _shader.SetMatrix4("model", model);
             _shader.SetMatrix4("view", _camera.GetViewMatrix());
             _shader.SetMatrix4("projection", _camera.GetProjectionMatrix());
+            Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
 
-            double timeValue = _timer.Elapsed.TotalSeconds;
-            _shader.SetFloat("slice", (float)((timeValue % 10.0) / 10.0) );
-
-            GL.DrawArrays(PrimitiveType.Triangles, 0, 18);
+            GL.DrawArrays(PrimitiveType.Triangles, 0, 36);
+            Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
 
             SwapBuffers();
         }
