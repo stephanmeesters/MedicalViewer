@@ -18,60 +18,34 @@ namespace LearnOpenTK
         // Negative X coordinates move to the left, positive X move to the right.
         // Negative Y coordinates move to the bottom, positive Y move to the top.
         // OpenGL only supports rendering in 3D, so to create a flat triangle, the Z coordinate will be kept as 0.
-        private readonly float[] _vertices =
+        private float[] _vertices =
         {
             // Positions          
-            -0.5f, -0.5f, -0.5f,  
-             0.5f, -0.5f, -0.5f,  
-             0.5f,  0.5f, -0.5f,  
-             0.5f,  0.5f, -0.5f,  
-            -0.5f,  0.5f, -0.5f,  
-            -0.5f, -0.5f, -0.5f,  
+            0.5f,  0.5f, 0.0f,  // top right
+             0.5f, -0.5f, 0.0f,  // bottom right
+            -0.5f, -0.5f, 0.0f,  // bottom left
+            -0.5f,  0.5f, 0.0f   // top left
+        };
 
-            0.5f, -0.5f,  0.5f,  
-            -0.5f, -0.5f,  0.5f,  
-             0.5f,  0.5f,  0.5f,  
-             -0.5f,  0.5f,  0.5f, 
-             0.5f,  0.5f,  0.5f,  
-            -0.5f, -0.5f,  0.5f,  
-
-            -0.5f,  0.5f, -0.5f, 
-            -0.5f,  0.5f,  0.5f, 
-            -0.5f, -0.5f, -0.5f, 
-            -0.5f, -0.5f,  0.5f, 
-            -0.5f, -0.5f, -0.5f, 
-            -0.5f,  0.5f,  0.5f, 
-
-             0.5f,  0.5f,  0.5f,  
-             0.5f,  0.5f, -0.5f,  
-             0.5f, -0.5f, -0.5f,  
-             0.5f, -0.5f, -0.5f,  
-             0.5f, -0.5f,  0.5f,  
-             0.5f,  0.5f,  0.5f,  
-
-             0.5f, -0.5f, -0.5f,  
-            -0.5f, -0.5f, -0.5f,  
-             0.5f, -0.5f,  0.5f,  
-             -0.5f, -0.5f,  0.5f, 
-             0.5f, -0.5f,  0.5f,  
-            -0.5f, -0.5f, -0.5f,  
-
-            -0.5f,  0.5f, -0.5f,  
-             0.5f,  0.5f, -0.5f,  
-             0.5f,  0.5f,  0.5f,  
-             0.5f,  0.5f,  0.5f,  
-            -0.5f,  0.5f,  0.5f,  
-            -0.5f,  0.5f, -0.5f,  
+        private uint[] _indices =
+        {
+             0, 1, 3,   // first triangle
+            1, 2, 3    // second triangle
         };
 
         // These are the handles to OpenGL objects. A handle is an integer representing where the object lives on the
         // graphics card. Consider them sort of like a pointer; we can't do anything with them directly, but we can
         // send them to OpenGL functions that need them.
 
-        // What these objects are will be explained in OnLoad.
+            // What these objects are will be explained in OnLoad.
         private int _vertexBufferObject;
-
+        private int _vertexBufferObject_index;
         private int _vertexArrayObject;
+
+        private int _vertexBufferObject_obj_vertex;
+        private int _vertexBufferObject_obj_index;
+        private int _vertexArrayObject_obj;
+        private Mesh _mesh;
 
         // This class is a wrapper around a shader, which helps us manage it.
         // The shader class's code is in the Common project.
@@ -106,19 +80,26 @@ namespace LearnOpenTK
             _shader = new Shader("Shaders/vshader.glsl", "Shaders/fshader.glsl");
             Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
 
+            /*_vertexArrayObject = GL.GenVertexArray();
+            GL.BindVertexArray(_vertexArrayObject);
+
             _vertexBufferObject = GL.GenBuffer();
             GL.BindBuffer(BufferTarget.ArrayBuffer, _vertexBufferObject);
             GL.BufferData(BufferTarget.ArrayBuffer, _vertices.Length * sizeof(float), _vertices, BufferUsageHint.StaticDraw);
-            Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
 
-            _vertexArrayObject = GL.GenVertexArray();
-            GL.BindVertexArray(_vertexArrayObject);
-            Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
+            _vertexBufferObject_index = GL.GenBuffer();
+            GL.BindBuffer(BufferTarget.ElementArrayBuffer, _vertexBufferObject_index);
+            GL.BufferData(BufferTarget.ElementArrayBuffer, _indices.Length * sizeof(uint), _indices, BufferUsageHint.StaticDraw);
 
             var positionLocation = _shader.GetAttribLocation("vertex");
             GL.EnableVertexAttribArray(positionLocation);
             GL.VertexAttribPointer(positionLocation, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float), 0);
-            Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
+
+            GL.BindVertexArray(0);
+            GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
+            GL.BindBuffer(BufferTarget.ElementArrayBuffer, 0);*/
+
+
 
             Vector3 camPos = new Vector3
             {
@@ -129,26 +110,58 @@ namespace LearnOpenTK
             _camera = new Camera(camPos, Size.X / (float)Size.Y);
             CursorGrabbed = true;
 
-            GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-            GL.Enable(EnableCap.CullFace);
-            GL.CullFace(CullFaceMode.Front);
+            
+
+
+
+
+
+            _mesh = ObjLoader.Load("Data/model.obj");
+
+            _vertexArrayObject_obj = GL.GenVertexArray();
+            GL.BindVertexArray(_vertexArrayObject_obj);
+
+            _vertexBufferObject_obj_vertex = GL.GenBuffer();
+            GL.BindBuffer(BufferTarget.ArrayBuffer, _vertexBufferObject_obj_vertex);
+            GL.BufferData(BufferTarget.ArrayBuffer, _mesh.numberOfVertices * sizeof(float), _mesh.vertices.ToArray(), BufferUsageHint.StaticDraw);
+
+            _vertexBufferObject_obj_index = GL.GenBuffer();
+            GL.BindBuffer(BufferTarget.ElementArrayBuffer, _vertexBufferObject_obj_index);
+            GL.BufferData(BufferTarget.ElementArrayBuffer, _mesh.numberOfIndices * sizeof(uint), _mesh.vertexIndices.ToArray(), BufferUsageHint.StaticDraw);
+
+            var positionLocation = _shader.GetAttribLocation("vertex");
+            GL.EnableVertexAttribArray(positionLocation);
+            GL.VertexAttribPointer(positionLocation, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float), 0);
+
+            GL.BindVertexArray(0);
+            GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
+            GL.BindBuffer(BufferTarget.ElementArrayBuffer, 0);
+
         }
 
         // Now that initialization is done, let's create our render loop.
         protected override void OnRenderFrame(FrameEventArgs e)
         {
             base.OnRenderFrame(e);
-            
+
+            GL.Enable(EnableCap.DepthTest);
+            GL.DepthMask(true);
+            GL.DepthFunc(DepthFunction.Lequal);
+
+            GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+            GL.Enable(EnableCap.CullFace);
+            GL.CullFace(CullFaceMode.Front);
+
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
-            GL.BindVertexArray(_vertexArrayObject);
+            
             _tex3D.Use(TextureUnit.Texture0);
             _shader.Use();
             Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
 
             float time = DateTime.Now.Second + DateTime.Now.Millisecond / 1000f;
             Matrix4 model = Matrix4.Identity;
-            model *= Matrix4.CreateScale(0.5f);
+            model *= Matrix4.CreateScale(0.25f);
             model *= Matrix4.CreateTranslation(0.5f, 0.5f, 0.5f);
             model *= Matrix4.CreateTranslation((float)Math.Sin(time)*0.25f, 0.0f, 0.0f);
 
@@ -157,15 +170,20 @@ namespace LearnOpenTK
             _shader.SetMatrix4("projection", _camera.GetProjectionMatrix());
             Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
 
-            double norm = 25;// 1.0 / (_tex3D.ImageHighestIntensity - _tex3D.ImageLowestIntensity);
+            double norm = 45;// 1.0 / (_tex3D.ImageHighestIntensity - _tex3D.ImageLowestIntensity);
             //_shader.SetFloat("minIntensity", (float)_tex3D.ImageLowestIntensity);
            // _shader.SetFloat("maxIntensity", (float)_tex3D.ImageHighestIntensity);
             _shader.SetFloat("norm", (float)norm);
-
-            GL.DrawArrays(PrimitiveType.Triangles, 0, 36);
+            
+            GL.BindVertexArray(_vertexArrayObject_obj);
+            GL.DrawElements(PrimitiveType.Triangles, _mesh.numberOfIndices, DrawElementsType.UnsignedInt, 0);
             Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
 
             SwapBuffers();
+
+            GL.BindVertexArray(0);
+
+            //https://github.com/dabbertorres/ObjRenderer/blob/master/ObjRenderer/RenderTab.cs
         }
 
         protected override void OnUpdateFrame(FrameEventArgs e)
@@ -184,7 +202,7 @@ namespace LearnOpenTK
                 Close();
             }
 
-            const float cameraSpeed = 1.5f;
+            const float cameraSpeed = 10.5f;
             const float sensitivity = 0.2f;
 
             if (input.IsKeyDown(Keys.W))
@@ -243,11 +261,13 @@ namespace LearnOpenTK
         {
             // Unbind all the resources by binding the targets to 0/null.
             GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
+            GL.BindBuffer(BufferTarget.ElementArrayBuffer, 0);
             GL.BindVertexArray(0);
             GL.UseProgram(0);
 
             // Delete all the resources.
             GL.DeleteBuffer(_vertexBufferObject);
+            GL.DeleteBuffer(_vertexBufferObject_index);
             GL.DeleteVertexArray(_vertexArrayObject);
 
             GL.DeleteProgram(_shader.Handle);
