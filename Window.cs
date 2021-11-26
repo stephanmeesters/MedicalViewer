@@ -43,6 +43,7 @@ namespace LearnOpenTK
         private int _vertexArrayObject;
 
         private int _vertexBufferObject_obj_vertex;
+        private int _vertexBufferObject_obj_normal;
         private int _vertexBufferObject_obj_index;
         private int _vertexArrayObject_obj;
         private Mesh _mesh;
@@ -73,6 +74,8 @@ namespace LearnOpenTK
             base.OnLoad();
             
             GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+            SwapBuffers();
 
             _tex3D = Texture3D.LoadFromFile("Data/ct_anat_short.nii.gz");
             Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
@@ -116,22 +119,26 @@ namespace LearnOpenTK
 
 
 
-            _mesh = ObjLoader.Load("Data/model.obj");
+            _mesh = ObjLoader.Load("Data/bunny2.obj");
 
             _vertexArrayObject_obj = GL.GenVertexArray();
             GL.BindVertexArray(_vertexArrayObject_obj);
 
             _vertexBufferObject_obj_vertex = GL.GenBuffer();
             GL.BindBuffer(BufferTarget.ArrayBuffer, _vertexBufferObject_obj_vertex);
-            GL.BufferData(BufferTarget.ArrayBuffer, _mesh.numberOfVertices * sizeof(float), _mesh.vertices.ToArray(), BufferUsageHint.StaticDraw);
+            GL.BufferData(BufferTarget.ArrayBuffer, _mesh.numberOfAttributes * sizeof(float), _mesh.vertices_attributes, BufferUsageHint.StaticDraw);
 
             _vertexBufferObject_obj_index = GL.GenBuffer();
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, _vertexBufferObject_obj_index);
             GL.BufferData(BufferTarget.ElementArrayBuffer, _mesh.numberOfIndices * sizeof(uint), _mesh.vertexIndices.ToArray(), BufferUsageHint.StaticDraw);
 
-            var positionLocation = _shader.GetAttribLocation("vertex");
+            var positionLocation = _shader.GetAttribLocation("aPos");
             GL.EnableVertexAttribArray(positionLocation);
-            GL.VertexAttribPointer(positionLocation, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float), 0);
+            GL.VertexAttribPointer(positionLocation, 3, VertexAttribPointerType.Float, false, _mesh.stride * sizeof(float), 0);
+
+            var normalLocation = _shader.GetAttribLocation("aNormal");
+            GL.EnableVertexAttribArray(normalLocation);
+            GL.VertexAttribPointer(normalLocation, 3, VertexAttribPointerType.Float, true, _mesh.stride * sizeof(float), 3 * sizeof(float));
 
             GL.BindVertexArray(0);
             GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
@@ -150,32 +157,40 @@ namespace LearnOpenTK
 
             GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f);
             GL.Enable(EnableCap.CullFace);
-            GL.CullFace(CullFaceMode.Front);
+            GL.CullFace(CullFaceMode.Back);
 
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
-            
+            GL.BindVertexArray(_vertexArrayObject_obj);
             _tex3D.Use(TextureUnit.Texture0);
             _shader.Use();
             Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
 
             float time = DateTime.Now.Second + DateTime.Now.Millisecond / 1000f;
-            Matrix4 model = Matrix4.Identity;
-            model *= Matrix4.CreateScale(0.25f);
-            model *= Matrix4.CreateTranslation(0.5f, 0.5f, 0.5f);
-            model *= Matrix4.CreateTranslation((float)Math.Sin(time)*0.25f, 0.0f, 0.0f);
+            Matrix4 model = Matrix4.CreateTranslation(-_mesh.centerOfMass.X, -_mesh.centerOfMass.Y, -_mesh.centerOfMass.Z);
+            model *= Matrix4.CreateRotationY(time * 0.25f);
+            //model *= Matrix4.CreateScale(0.01f);
+            //model *= Matrix4.CreateTranslation(0.5f, 0.5f, 0.5f);
+            ///model *= Matrix4.CreateTranslation((float)Math.Sin(time)*0.25f, 0.0f, 0.0f);
 
             _shader.SetMatrix4("model", model);
             _shader.SetMatrix4("view", _camera.GetViewMatrix());
             _shader.SetMatrix4("projection", _camera.GetProjectionMatrix());
             Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
 
+            _shader.SetVector3("viewPos", _camera.Position);
+            _shader.SetVector3("light.direction", new Vector3(0.0f, 1.0f, 0.0f));
+            _shader.SetVector3("light.ambient", new Vector3(0.2f));
+            _shader.SetVector3("light.diffuse", new Vector3(0.5f));
+            _shader.SetVector3("light.specular", new Vector3(1.0f));
+            _shader.SetFloat("light.base", 0.02f);
+
             double norm = 45;// 1.0 / (_tex3D.ImageHighestIntensity - _tex3D.ImageLowestIntensity);
             //_shader.SetFloat("minIntensity", (float)_tex3D.ImageLowestIntensity);
            // _shader.SetFloat("maxIntensity", (float)_tex3D.ImageHighestIntensity);
             _shader.SetFloat("norm", (float)norm);
             
-            GL.BindVertexArray(_vertexArrayObject_obj);
+            
             GL.DrawElements(PrimitiveType.Triangles, _mesh.numberOfIndices, DrawElementsType.UnsignedInt, 0);
             Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
 
@@ -202,7 +217,7 @@ namespace LearnOpenTK
                 Close();
             }
 
-            const float cameraSpeed = 10.5f;
+            const float cameraSpeed = 1.5f;
             const float sensitivity = 0.2f;
 
             if (input.IsKeyDown(Keys.W))

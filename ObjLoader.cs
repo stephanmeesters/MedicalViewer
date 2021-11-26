@@ -8,7 +8,7 @@ namespace LearnOpenTK
 	{
 		public static Mesh Load(string path)
 		{
-			List<float> vertices = new List<float>();
+			List<Vector3> vertices = new List<Vector3>();
 			List<Vector3> normals = new List<Vector3>();
 			List<uint> vertexIndices = new List<uint>();
 			List<uint> normalIndices = new List<uint>();
@@ -37,17 +37,17 @@ namespace LearnOpenTK
 					{
 						// vertex
 						case "v":
-							vertices.Add(float.Parse(words[0], System.Globalization.CultureInfo.InvariantCulture));
-							vertices.Add(float.Parse(words[1], System.Globalization.CultureInfo.InvariantCulture));
-							vertices.Add(float.Parse(words[2], System.Globalization.CultureInfo.InvariantCulture));
-							/*vertices.Add(new Vector3(
+							vertices.Add(new Vector3(
 								float.Parse(words[0], System.Globalization.CultureInfo.InvariantCulture),
 								float.Parse(words[1], System.Globalization.CultureInfo.InvariantCulture),
-								float.Parse(words[2], System.Globalization.CultureInfo.InvariantCulture)));*/
+								float.Parse(words[2], System.Globalization.CultureInfo.InvariantCulture)));
 							break;
 
 						case "vn":
-							normals.Add(new Vector3(float.Parse(words[0]), float.Parse(words[1]), float.Parse(words[2])));
+							normals.Add(new Vector3(
+								float.Parse(words[0], System.Globalization.CultureInfo.InvariantCulture), 
+								float.Parse(words[1], System.Globalization.CultureInfo.InvariantCulture), 
+								float.Parse(words[2], System.Globalization.CultureInfo.InvariantCulture)));
 							break;
 
 						// face
