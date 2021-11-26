@@ -6,6 +6,7 @@ using OpenTK.Windowing.Desktop;
 using OpenTK.Mathematics;
 using System.Diagnostics;
 using System;
+using System.Linq;
 
 namespace LearnOpenTK
 {
@@ -62,6 +63,10 @@ namespace LearnOpenTK
         private bool _firstMove = true;
 
         private Vector2 _lastPos;
+
+        private long _prevElapsedTime;
+        private float[] _previousFPS = new float[100];
+        private int _previousFPSIndex;
 
         public Window(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings)
             : base(gameWindowSettings, nativeWindowSettings)
@@ -162,6 +167,8 @@ namespace LearnOpenTK
             GL.Enable(EnableCap.CullFace);
             GL.CullFace(CullFaceMode.Back);
 
+            GL.Enable(EnableCap.Multisample);
+
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
             GL.BindVertexArray(_vertexArrayObject_obj);
@@ -208,6 +215,23 @@ namespace LearnOpenTK
         protected override void OnUpdateFrame(FrameEventArgs e)
         {
             base.OnUpdateFrame(e);
+
+            
+            long newTime = _sw.ElapsedMilliseconds;
+            long diff = newTime - _prevElapsedTime;
+            if (_prevElapsedTime != 0)
+                this.Title = string.Format("Medical Viewer - frametime: {0} ms ({1} FPS)", diff, Math.Round(_previousFPS.Average()));
+            _prevElapsedTime = newTime;
+            if(diff > 0)
+            {
+                _previousFPS[_previousFPSIndex] = 1000.0f / diff;
+                _previousFPSIndex++;
+                if (_previousFPSIndex >= 100)
+                    _previousFPSIndex = 0;
+            }
+            
+
+
 
             if (!IsFocused)
             {
