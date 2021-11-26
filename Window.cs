@@ -57,6 +57,7 @@ namespace LearnOpenTK
 
         private Camera _camera;
 
+        Stopwatch _sw;
 
         private bool _firstMove = true;
 
@@ -144,6 +145,8 @@ namespace LearnOpenTK
             GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, 0);
 
+            _sw = Stopwatch.StartNew();
+            _sw.Start();
         }
 
         // Now that initialization is done, let's create our render loop.
@@ -166,7 +169,8 @@ namespace LearnOpenTK
             _shader.Use();
             Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
 
-            float time = DateTime.Now.Second + DateTime.Now.Millisecond / 1000f;
+            float time = (float)(_sw.ElapsedMilliseconds)/1000.0f;
+
             Matrix4 model = Matrix4.CreateTranslation(-_mesh.centerOfMass.X, -_mesh.centerOfMass.Y, -_mesh.centerOfMass.Z);
             model *= Matrix4.CreateRotationY(time * 0.25f);
             //model *= Matrix4.CreateScale(0.01f);
