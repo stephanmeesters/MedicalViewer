@@ -28,9 +28,9 @@ void main()
 
         // diffuse 
         vec3 norm = normalize(Normal);
-        vec3 lightDir = normalize(-light.direction);
+        vec3 lightDir = normalize(-light.direction)*0.00001 + normalize(viewPos);
         float diff = max(dot(norm, lightDir), 0.0);
-        vec3 diffuse = light.diffuse * diff;// * color;
+        vec3 diffuse = light.diffuse * diff * color;
 
         // specular
         vec3 viewDir = normalize(viewPos);
