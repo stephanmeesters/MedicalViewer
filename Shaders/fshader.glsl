@@ -11,6 +11,8 @@ struct Light {
     vec3 ambient;
     vec3 diffuse;
     vec3 specular;
+    vec3 color;
+    float colorStrength;
 };
 uniform Light light;
 uniform sampler3D sampler;
@@ -23,7 +25,7 @@ void main()
 {
 
         // ambient
-        vec3 color = vec3(texture(sampler, vec3(FragPos.x, FragPos.y, FragPos.z)).r * norm);
+        vec3 color = vec3(texture(sampler, vec3(FragPos.x, FragPos.y, FragPos.z)).r * norm)*(1.0 - light.colorStrength) + light.color*light.colorStrength;
         vec3 ambient = light.ambient * color + vec3(light.base);
 
         // diffuse 

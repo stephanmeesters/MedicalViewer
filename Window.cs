@@ -1,5 +1,4 @@
-﻿using LearnOpenTK.Common;
-using OpenTK.Graphics.OpenGL4;
+﻿using OpenTK.Graphics.OpenGL4;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using OpenTK.Windowing.Desktop;
@@ -7,6 +6,7 @@ using OpenTK.Mathematics;
 using System.Diagnostics;
 using System;
 using System.Linq;
+using System.Collections.Generic;
 
 namespace LearnOpenTK
 {
@@ -85,6 +85,11 @@ namespace LearnOpenTK
         private int _vertexArrayObject_obj;
         private Mesh _mesh;
 
+        private Model _model;
+        private Model _model2;
+
+        private List<Model> _models = new List<Model>();
+
         // This class is a wrapper around a shader, which helps us manage it.
         // The shader class's code is in the Common project.
         // What shaders are and what they're used for will be explained later in this tutorial.
@@ -120,7 +125,7 @@ namespace LearnOpenTK
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
             SwapBuffers();
 
-            _tex3D = Texture3D.LoadFromFile("Data/ct_anat_short.nii.gz");
+            _tex3D = Texture3D.LoadFromFile("Data/CT/ct_image.nii.gz");
             Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
 
             _shader = new Shader("Shaders/vshader.glsl", "Shaders/fshader.glsl");
@@ -162,36 +167,33 @@ namespace LearnOpenTK
             _camera = new Camera(camPos, Size.X / (float)Size.Y);
             CursorGrabbed = true;
 
-            
+            string[] modelFiles =
+            {
+                "Data/CT/205.obj",
+                "Data/CT/420.obj",
+                "Data/CT/500.obj",
+                "Data/CT/550.obj",
+                "Data/CT/600.obj",
+                "Data/CT/820.obj",
+                "Data/CT/850.obj"
+            };
 
+            Matrix4 modelTransform = Matrix4.Identity;
+            modelTransform *= Matrix4.CreateTranslation(-45.5f, 228.585f, 271.88f);
+            modelTransform *= Matrix4.CreateScale(1.0f / 0.355469f, 1.0f / 0.355469f, 1.0f / 0.45f);
+            modelTransform *= Matrix4.CreateScale(1.0f / 512.0f, 1.0f / 512.0f, 1.0f / 363.0f);
+            modelTransform *= Matrix4.CreateTranslation(1.0f, 0.0f, 0.0f);
 
-
-
-
-            _mesh = ObjLoader.Load("Data/model2.obj");
-
-            _vertexArrayObject_obj = GL.GenVertexArray();
-            GL.BindVertexArray(_vertexArrayObject_obj);
-
-            _vertexBufferObject_obj_vertex = GL.GenBuffer();
-            GL.BindBuffer(BufferTarget.ArrayBuffer, _vertexBufferObject_obj_vertex);
-            GL.BufferData(BufferTarget.ArrayBuffer, _mesh.numberOfAttributes * sizeof(float), _mesh.vertices_attributes, BufferUsageHint.StaticDraw);
-
-            _vertexBufferObject_obj_index = GL.GenBuffer();
-            GL.BindBuffer(BufferTarget.ElementArrayBuffer, _vertexBufferObject_obj_index);
-            GL.BufferData(BufferTarget.ElementArrayBuffer, _mesh.numberOfIndices * sizeof(uint), _mesh.vertexIndices.ToArray(), BufferUsageHint.StaticDraw);
-
-            positionLocation = _shader.GetAttribLocation("aPos");
-            GL.EnableVertexAttribArray(positionLocation);
-            GL.VertexAttribPointer(positionLocation, 3, VertexAttribPointerType.Float, false, _mesh.stride * sizeof(float), 0);
-
-            var normalLocation = _shader.GetAttribLocation("aNormal");
-            GL.EnableVertexAttribArray(normalLocation);
-            GL.VertexAttribPointer(normalLocation, 3, VertexAttribPointerType.Float, true, _mesh.stride * sizeof(float), 3 * sizeof(float));
-
-            GL.BindVertexArray(0);
-            GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
-            GL.BindBuffer(BufferTarget.ElementArrayBuffer, 0);
+            Random rand = new Random();
+            foreach (string f in modelFiles)
+            {
+                Model m = Model.Load(f);
+                m.ConstructVAO();
+                m.BindToShader(_shader);
+                m.transform = modelTransform;
+                m.color = new Vector3((float)rand.NextDouble(), (float)rand.NextDouble(), (float)rand.NextDouble());
+                _models.Add(m);
+            }
 
             _sw = Stopwatch.StartNew();
             _sw.Start();
@@ -207,10 +209,10 @@ namespace LearnOpenTK
             GL.DepthFunc(DepthFunction.Lequal);
 
             GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-            //GL.Enable(EnableCap.CullFace);
-            //GL.CullFace(CullFaceMode.Front);
+            GL.Enable(EnableCap.CullFace);
+            GL.CullFace(CullFaceMode.Front);
 
-            //GL.Enable(EnableCap.Multisample);
+            GL.Enable(EnableCap.Multisample);
 
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
@@ -218,45 +220,13 @@ namespace LearnOpenTK
             //  model 1
             //
 
+            
             _tex3D.Use(TextureUnit.Texture0);
             _shader.Use();
             Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
 
-            float time = (float)(_sw.ElapsedMilliseconds)/1000.0f;
+            //float time = (float)(_sw.ElapsedMilliseconds)/1000.0f;
 
-            Matrix4 qform = Matrix4.Identity;
-            //qform.M11 = -0.355469f;
-
-            qform.Row0 = new Vector4(-0.355469f, 0.0f, 0.0f, 45.5f);
-            qform.Row1 = new Vector4(0.0f, 0.355469f, 0.0f, -228.585f);
-            qform.Row2 = new Vector4(0.0f, 0.0f, 0.45f, -271.88f);
-
-            qform.Invert();
-
-            //Matrix4.CreateScale(10, 2.0, )
-
-            //qform.Transpose();
-
-            //Matrix4 model = Matrix4.CreateTranslation(45.5f, -228.585f, -271.88f);
-            //model *= Matrix4.CreateScale(-0.355469f, 0.355469f, 0.45f);
-            //model *= Matrix4.CreateScale(2.0f / 512.0f);
-
-            Matrix4 model = Matrix4.Identity;
-            
-            model *= Matrix4.CreateTranslation(-45.5f, 228.585f, 271.88f);
-            model *= Matrix4.CreateScale(1.0f/0.355469f, 1.0f/0.355469f, 1.0f/0.45f);
-            model *= Matrix4.CreateScale(1.0f/512.0f, 1.0f/512.0f, 1.0f/363.0f);
-            model *= Matrix4.CreateTranslation(1.0f, 0.0f, 0.0f);
-
-
-            //Matrix4 model = qform;//Matrix4.CreateTranslation(-_mesh.centerOfMass.X, -_mesh.centerOfMass.Y, -_mesh.centerOfMass.Z);
-            //model *= Matrix4.CreateRotationY(time * 0.25f);
-            //model *= Matrix4.CreateScale( 2.0f / 512.0f);
-            //model *= Matrix4.CreateTranslation(0.5f, 0.5f, 0.5f);
-            //model *= Matrix4.CreateTranslation(0.5f, 0.5f, 0.5f);
-            ///model *= Matrix4.CreateTranslation((float)Math.Sin(time)*0.25f, 0.0f, 0.0f);
-
-            _shader.SetMatrix4("model", model);
             _shader.SetMatrix4("view", _camera.GetViewMatrix());
             _shader.SetMatrix4("projection", _camera.GetProjectionMatrix());
             Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
@@ -266,16 +236,21 @@ namespace LearnOpenTK
             _shader.SetVector3("light.ambient", new Vector3(0.2f));
             _shader.SetVector3("light.diffuse", new Vector3(0.5f));
             _shader.SetVector3("light.specular", new Vector3(1.0f));
-            _shader.SetFloat("light.base", 0.05f);
+            _shader.SetFloat("light.colorStrength", 0.3f);
+            _shader.SetFloat("light.base", 0.0f);
 
             double norm = 45;// 1.0 / (_tex3D.ImageHighestIntensity - _tex3D.ImageLowestIntensity);
             //_shader.SetFloat("minIntensity", (float)_tex3D.ImageLowestIntensity);
            // _shader.SetFloat("maxIntensity", (float)_tex3D.ImageHighestIntensity);
             _shader.SetFloat("norm", (float)norm);
-
-            GL.BindVertexArray(_vertexArrayObject_obj);
-            GL.DrawElements(PrimitiveType.Triangles, _mesh.numberOfIndices, DrawElementsType.UnsignedInt, 0);
             Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
+
+            foreach (Model m in _models)
+            {
+                _shader.SetMatrix4("model", m.transform);
+                _shader.SetVector3("light.color", m.color);
+                m.Draw();
+            }
 
             //
             //  model 2
