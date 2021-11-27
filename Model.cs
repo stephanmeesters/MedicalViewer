@@ -16,6 +16,8 @@ namespace LearnOpenTK
 
         public Vector3 color = new Vector3(1.0f, 0.0f, 0.0f);
 
+        public PrimitiveType renderType = PrimitiveType.Triangles;
+
         public Model(Mesh mesh)
         {
             this.mesh = mesh;
@@ -75,7 +77,7 @@ namespace LearnOpenTK
         public void Draw()
         {
             GL.BindVertexArray(vao);
-            GL.DrawElements(PrimitiveType.Triangles, mesh.numberOfIndices, DrawElementsType.UnsignedInt, 0);
+            GL.DrawElements(renderType, mesh.numberOfIndices, DrawElementsType.UnsignedInt, 0);
             Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
             GL.BindVertexArray(0);
         }

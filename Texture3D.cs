@@ -64,6 +64,8 @@ namespace LearnOpenTK
             GL.TexParameter(TextureTarget.Texture3D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.Repeat);
             GL.TexParameter(TextureTarget.Texture3D, TextureParameterName.TextureWrapR, (int)TextureWrapMode.Repeat);
 
+            GL.GenerateMipmap(GenerateMipmapTarget.Texture3D);
+
             return new Texture3D(handle, minIntensity, maxIntensity);
         }
 

@@ -89,6 +89,7 @@ namespace LearnOpenTK
         private Model _model2;
 
         private List<Model> _models = new List<Model>();
+        private Model _cube;
 
         // This class is a wrapper around a shader, which helps us manage it.
         // The shader class's code is in the Common project.
@@ -131,7 +132,7 @@ namespace LearnOpenTK
             _shader = new Shader("Shaders/vshader.glsl", "Shaders/fshader.glsl");
             Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
 
-            _shaderPlane = new Shader("Shaders/vshader_plane.glsl", "Shaders/fshader_plane.glsl");
+            _shaderPlane = new Shader("Shaders/vshader.glsl", "Shaders/fshader_plane.glsl");
             Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
 
             _vertexArrayObject = GL.GenVertexArray();
@@ -195,6 +196,11 @@ namespace LearnOpenTK
                 _models.Add(m);
             }
 
+            _cube = Model.Load("Data/cube.obj");
+            _cube.ConstructVAO();
+            _cube.BindToShader(_shaderPlane);
+            _cube.renderType = PrimitiveType.Lines;
+
             _sw = Stopwatch.StartNew();
             _sw.Start();
         }
@@ -208,7 +214,7 @@ namespace LearnOpenTK
             GL.DepthMask(true);
             GL.DepthFunc(DepthFunction.Lequal);
 
-            GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+            GL.ClearColor(1.0f, 1.0f, 1.0f, 1.0f);
             GL.Enable(EnableCap.CullFace);
             GL.CullFace(CullFaceMode.Front);
 
@@ -217,7 +223,7 @@ namespace LearnOpenTK
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
             //
-            //  model 1
+            //  anatomical models
             //
 
             
@@ -253,27 +259,18 @@ namespace LearnOpenTK
             }
 
             //
-            //  model 2
+            //  cube model
             //
-
-            _tex3D.Use(TextureUnit.Texture0);
-            Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
 
             _shaderPlane.Use();
             Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
 
-            var model2 = Matrix4.CreateTranslation(0.5f, 0.5f, 0.5f);
-            model2 *= Matrix4.CreateScale(1.0f);
-            _shaderPlane.SetMatrix4("model", model2);
+            _shaderPlane.SetMatrix4("model", _cube.transform);
             _shaderPlane.SetMatrix4("view", _camera.GetViewMatrix());
             _shaderPlane.SetMatrix4("projection", _camera.GetProjectionMatrix());
-            _shaderPlane.SetFloat("norm", 45.0f);
             Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
 
-            GL.BindVertexArray(_vertexArrayObject);
-            //GL.DrawElements(PrimitiveType.Triangles, _indices.Length, DrawElementsType.UnsignedInt, 0);
-            GL.DrawArrays(PrimitiveType.Lines, 0, 36);
-            Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
+            _cube.Draw();
 
             SwapBuffers();
 
