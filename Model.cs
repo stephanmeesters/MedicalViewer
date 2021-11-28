@@ -88,5 +88,12 @@ namespace LearnOpenTK
             Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
             GL.BindVertexArray(0);
         }
+
+        public void Delete()
+        {
+            GL.DeleteBuffer(vbo_vertex);
+            GL.DeleteBuffer(vbo_index);
+            GL.DeleteVertexArray(vao);
+        }
     }
 }
