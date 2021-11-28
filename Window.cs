@@ -89,6 +89,7 @@ namespace LearnOpenTK
         private Model _model2;
 
         private List<Model> _models = new List<Model>();
+        private List<Model> _planes = new List<Model>();
         private Model _cube;
 
         // This class is a wrapper around a shader, which helps us manage it.
@@ -127,6 +128,7 @@ namespace LearnOpenTK
             SwapBuffers();
 
             _tex3D = Texture3D.LoadFromFile("Data/CT/ct_image.nii.gz");
+            //_tex3D = Texture3D.LoadFromFile("Data/MR/mr_image_reg.nii.gz");
             Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
 
             _shader = new Shader("Shaders/vshader.glsl", "Shaders/fshader.glsl");
@@ -166,6 +168,7 @@ namespace LearnOpenTK
                 Z = 3.0f
             };
             _camera = new Camera(camPos, Size.X / (float)Size.Y);
+            //_camera.Pitch = 90;
             CursorGrabbed = true;
 
             string[] modelFiles =
@@ -196,10 +199,28 @@ namespace LearnOpenTK
                 _models.Add(m);
             }
 
-            _cube = Model.Load("Data/cube.obj");
-            _cube.ConstructVAO();
-            _cube.BindToShader(_shaderPlane);
-            _cube.renderType = PrimitiveType.Lines;
+
+            var plane_x = Model.Load("Data/plane.obj");
+            plane_x.ConstructVAO();
+            plane_x.BindToShader(_shaderPlane);
+            plane_x.transform = Matrix4.CreateTranslation(0.0f, 0.0f, 0.5f);
+            plane_x.name = "Plane_X";
+            _planes.Add(plane_x);
+
+            var plane_y = Model.Load("Data/plane.obj");
+            plane_y.ConstructVAO();
+            plane_y.BindToShader(_shaderPlane);
+            plane_y.transform = Matrix4.CreateRotationY(-(float)Math.PI*0.5f);
+            plane_y.visible = false;
+            //plane_y.transform *= Matrix4.CreateTranslation(0.0f, 0.0f, 0.5f);
+            _planes.Add(plane_y);
+
+            var plane_z = Model.Load("Data/plane.obj");
+            plane_z.ConstructVAO();
+            plane_z.BindToShader(_shaderPlane);
+            plane_z.transform = Matrix4.CreateRotationX((float)Math.PI * 0.5f);
+            plane_z.visible = false;
+            _planes.Add(plane_z);
 
             _sw = Stopwatch.StartNew();
             _sw.Start();
@@ -231,7 +252,7 @@ namespace LearnOpenTK
             _shader.Use();
             Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
 
-            //float time = (float)(_sw.ElapsedMilliseconds)/1000.0f;
+            float time = (float)(_sw.ElapsedMilliseconds)/1000.0f;
 
             _shader.SetMatrix4("view", _camera.GetViewMatrix());
             _shader.SetMatrix4("projection", _camera.GetProjectionMatrix());
@@ -242,8 +263,7 @@ namespace LearnOpenTK
             _shader.SetVector3("light.ambient", new Vector3(0.2f));
             _shader.SetVector3("light.diffuse", new Vector3(0.5f));
             _shader.SetVector3("light.specular", new Vector3(1.0f));
-            _shader.SetFloat("light.colorStrength", 0.3f);
-            _shader.SetFloat("light.base", 0.0f);
+            _shader.SetFloat("light.colorStrength", 0.0f);
 
             double norm = 45;// 1.0 / (_tex3D.ImageHighestIntensity - _tex3D.ImageLowestIntensity);
             //_shader.SetFloat("minIntensity", (float)_tex3D.ImageLowestIntensity);
@@ -253,7 +273,15 @@ namespace LearnOpenTK
 
             foreach (Model m in _models)
             {
-                _shader.SetMatrix4("model", m.transform);
+
+                Vector4 centroidTrans = new Vector4(m.mesh.centerOfMass);
+                centroidTrans *= m.transform;
+                Matrix4 mm = m.transform;
+                //mm *= Matrix4.CreateTranslation(centroidTrans.X, centroidTrans.Y, centroidTrans.Z);
+                //mm *= Matrix4.CreateScale((float)(1.0-0.05*(0.5 + 0.5*Math.Sin(time*0.5))));
+                //mm *= Matrix4.CreateTranslation(-centroidTrans.X, -centroidTrans.Y, -centroidTrans.Z);
+
+                _shader.SetMatrix4("model", mm);
                 _shader.SetVector3("light.color", m.color);
                 m.Draw();
             }
@@ -262,21 +290,40 @@ namespace LearnOpenTK
             //  cube model
             //
 
+            GL.Disable(EnableCap.CullFace);
+
             _shaderPlane.Use();
             Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
-
-            _shaderPlane.SetMatrix4("model", _cube.transform);
+            
             _shaderPlane.SetMatrix4("view", _camera.GetViewMatrix());
             _shaderPlane.SetMatrix4("projection", _camera.GetProjectionMatrix());
+            norm = 45;
+            _shaderPlane.SetFloat("norm", (float)norm);
+            _shaderPlane.SetVector3("viewPos", _camera.Position);
             Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
 
-            _cube.Draw();
+            foreach (Model m in _planes)
+            {
+                if(m.name == "Plane_X")
+                {
+                    m.transform = Matrix4.CreateTranslation(0.0f, 0.0f, (float)(0.5 + 0.5 * Math.Sin(time * 0.5)));
+                }
+                _shaderPlane.SetMatrix4("model", m.transform);
+                m.Draw();
+            }
+
+            //
+            //  coordinate system
+            //
+
+            
 
             SwapBuffers();
 
             GL.BindVertexArray(0);
 
             //https://github.com/dabbertorres/ObjRenderer/blob/master/ObjRenderer/RenderTab.cs
+            // https://dreamstatecoding.blogspot.com/2018/03/opengl-4-with-opentk-in-c-part-15.html
         }
 
         protected override void OnUpdateFrame(FrameEventArgs e)

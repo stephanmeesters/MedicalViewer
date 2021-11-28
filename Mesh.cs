@@ -11,9 +11,6 @@ namespace LearnOpenTK
 		public readonly List<uint> vertexIndices;
 		public readonly List<uint> normalIndices;
 
-		public readonly Vector3[] normals_averaged;
-		public readonly int[] normals_averaged_count;
-
 		public readonly Vector3 centerOfMass;
 
 		public readonly int numberOfVertices;
@@ -52,8 +49,9 @@ namespace LearnOpenTK
 			}
 			centerOfMass /= this.numberOfVertices;
 
-			this.normals_averaged = new Vector3[this.numberOfVertices];
-			this.normals_averaged_count = new int[this.numberOfVertices];
+			Vector3[] normals_averaged = new Vector3[this.numberOfVertices];
+			int[] normals_averaged_count = new int[this.numberOfVertices];
+
 			for (int j = 0; j < this.numberOfIndices; j++)
 			{
 				int i = (int)vertexIndices[j];

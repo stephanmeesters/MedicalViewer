@@ -14,9 +14,12 @@ namespace LearnOpenTK
 
         public Matrix4 transform = Matrix4.Identity;
 
-        public Vector3 color = new Vector3(1.0f, 0.0f, 0.0f);
+        public Vector3 color = new Vector3(1.0f, 1.0f, 1.0f);
 
         public PrimitiveType renderType = PrimitiveType.Triangles;
+
+        public string name = "";
+        public bool visible = true;
 
         public Model(Mesh mesh)
         {
@@ -76,6 +79,9 @@ namespace LearnOpenTK
 
         public void Draw()
         {
+            if (!visible)
+                return;
+
             GL.BindVertexArray(vao);
             GL.DrawElements(renderType, mesh.numberOfIndices, DrawElementsType.UnsignedInt, 0);
             Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
