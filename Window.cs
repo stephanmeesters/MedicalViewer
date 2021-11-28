@@ -108,6 +108,8 @@ namespace LearnOpenTK
 
         private Vector2 _lastPos;
 
+        private int cval;
+
         private long _prevElapsedTime;
         private float[] _previousFPS = new float[100];
         private int _previousFPSIndex;
@@ -189,13 +191,17 @@ namespace LearnOpenTK
             modelTransform *= Matrix4.CreateTranslation(1.0f, 0.0f, 0.0f);
 
             Random rand = new Random();
+            float objectID = 0.0f;
             foreach (string f in modelFiles)
             {
+                objectID += 10.0f;
+
                 Model m = Model.Load(f);
                 m.ConstructVAO();
                 m.BindToShader(_shader);
                 m.transform = modelTransform;
                 m.color = new Vector3((float)rand.NextDouble(), (float)rand.NextDouble(), (float)rand.NextDouble());
+                m.objectID = objectID;
                 _models.Add(m);
             }
 
@@ -243,16 +249,12 @@ namespace LearnOpenTK
 
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
-            //
-            //  anatomical models
-            //
 
-            
             _tex3D.Use(TextureUnit.Texture0);
             _shader.Use();
             Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
 
-            float time = (float)(_sw.ElapsedMilliseconds)/1000.0f;
+            float time = (float)(_sw.ElapsedMilliseconds) / 1000.0f;
 
             _shader.SetMatrix4("view", _camera.GetViewMatrix());
             _shader.SetMatrix4("projection", _camera.GetProjectionMatrix());
@@ -264,12 +266,49 @@ namespace LearnOpenTK
             _shader.SetVector3("light.diffuse", new Vector3(0.5f));
             _shader.SetVector3("light.specular", new Vector3(1.0f));
             _shader.SetFloat("light.colorStrength", 0.0f);
+            _shader.SetInt("normalRender", 1);
 
             double norm = 45;// 1.0 / (_tex3D.ImageHighestIntensity - _tex3D.ImageLowestIntensity);
-            //_shader.SetFloat("minIntensity", (float)_tex3D.ImageLowestIntensity);
-           // _shader.SetFloat("maxIntensity", (float)_tex3D.ImageHighestIntensity);
+                             //_shader.SetFloat("minIntensity", (float)_tex3D.ImageLowestIntensity);
+                             // _shader.SetFloat("maxIntensity", (float)_tex3D.ImageHighestIntensity);
             _shader.SetFloat("norm", (float)norm);
             Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
+
+
+
+            //
+            //  object id map
+            //
+
+            _shader.SetInt("normalRender", 0);
+
+            foreach (Model m in _models)
+            {
+
+                Vector4 centroidTrans = new Vector4(m.mesh.centerOfMass);
+                centroidTrans *= m.transform;
+                Matrix4 mm = m.transform;
+                //mm *= Matrix4.CreateTranslation(centroidTrans.X, centroidTrans.Y, centroidTrans.Z);
+                //mm *= Matrix4.CreateScale((float)(1.0-0.05*(0.5 + 0.5*Math.Sin(time*0.5))));
+                //mm *= Matrix4.CreateTranslation(-centroidTrans.X, -centroidTrans.Y, -centroidTrans.Z);
+
+                _shader.SetMatrix4("model", mm);
+                _shader.SetVector3("light.color", m.color);
+                _shader.SetFloat("objectID", m.objectID / 255.0f);
+                m.Draw();
+            }
+
+            IntPtr Pixel = new IntPtr();
+            GL.ReadPixels(600, 600, 1, 1, PixelFormat.Red, PixelType.UnsignedByte, ref Pixel);
+            cval = (int)Pixel;
+
+            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+
+            //
+            //  anatomical models
+            //
+
+            _shader.SetInt("normalRender", 1);
 
             foreach (Model m in _models)
             {
@@ -334,7 +373,7 @@ namespace LearnOpenTK
             long newTime = _sw.ElapsedMilliseconds;
             long diff = newTime - _prevElapsedTime;
             if (_prevElapsedTime != 0)
-                this.Title = string.Format("Medical Viewer - frametime: {0} ms ({1} FPS)", diff, Math.Round(_previousFPS.Average()));
+                this.Title = string.Format("Medical Viewer - frametime: {0} ms ({1} FPS) - {2}", diff, Math.Round(_previousFPS.Average()), cval);
             _prevElapsedTime = newTime;
             if(diff > 0)
             {

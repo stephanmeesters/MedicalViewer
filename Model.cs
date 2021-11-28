@@ -20,6 +20,7 @@ namespace LearnOpenTK
 
         public string name = "";
         public bool visible = true;
+        public float objectID;
 
         public Model(Mesh mesh)
         {

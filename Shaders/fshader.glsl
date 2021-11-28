@@ -19,10 +19,13 @@ uniform sampler3D sampler;
 uniform float norm;
 uniform vec3 viewPos;
 
-
+uniform float objectID;
+uniform int normalRender;
 
 void main()
 {
+    if(normalRender == 1)
+    {
         // ambient
         vec3 color = vec3(texture(sampler, vec3(1-FragPos.x, FragPos.y, FragPos.z)).r * norm)*(1.0 - light.colorStrength) + light.color*light.colorStrength;
         vec3 ambient = light.ambient * color;
@@ -40,5 +43,10 @@ void main()
         vec3 specular = light.specular * spec * color;//vec3(texture(material.specular, TexCoords));
 
         vec3 result = ambient + diffuse + specular;
-        fragColor = vec4(result, 0.5);    
+        fragColor = vec4(result, 1.0);
+    }
+    else
+    {
+        fragColor = vec4(vec3(objectID), 1.0);
+    }
 }
