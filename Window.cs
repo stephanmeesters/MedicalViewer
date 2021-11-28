@@ -195,12 +195,12 @@ namespace LearnOpenTK
             _shader.SetVector3("viewPos", _camera.Position);
             _shader.SetVector3("light.direction", new Vector3(0.0f, 1.0f, 0.0f));
             _shader.SetVector3("light.ambient", new Vector3(0.2f));
-            _shader.SetVector3("light.diffuse", new Vector3(0.5f));
+            _shader.SetVector3("light.diffuse", new Vector3(0.8f));
             _shader.SetVector3("light.specular", new Vector3(1.0f));
             _shader.SetFloat("light.colorStrength", 0.0f);
             _shader.SetInt("normalRender", 1);
 
-            double norm = 45;// 1.0 / (_tex3D.ImageHighestIntensity - _tex3D.ImageLowestIntensity);
+            double norm = 65;// 1.0 / (_tex3D.ImageHighestIntensity - _tex3D.ImageLowestIntensity);
                              //_shader.SetFloat("minIntensity", (float)_tex3D.ImageLowestIntensity);
                              // _shader.SetFloat("maxIntensity", (float)_tex3D.ImageHighestIntensity);
             _shader.SetFloat("norm", (float)norm);
@@ -213,9 +213,9 @@ namespace LearnOpenTK
                 Vector4 centroidTrans = new Vector4(m.mesh.centerOfMass);
                 centroidTrans *= m.transform;
                 Matrix4 mm = m.transform;
-                //mm *= Matrix4.CreateTranslation(centroidTrans.X, centroidTrans.Y, centroidTrans.Z);
-                //mm *= Matrix4.CreateScale((float)(1.0-0.05*(0.5 + 0.5*Math.Sin(time*0.5))));
-                //mm *= Matrix4.CreateTranslation(-centroidTrans.X, -centroidTrans.Y, -centroidTrans.Z);
+                mm *= Matrix4.CreateTranslation(centroidTrans.X-1.0f, centroidTrans.Y, centroidTrans.Z);
+                mm *= Matrix4.CreateScale((float)(1.0-0.02*(0.5 + 0.5*Math.Sin(time*0.8))));
+                mm *= Matrix4.CreateTranslation(-centroidTrans.X+1.0f, -centroidTrans.Y, -centroidTrans.Z);
 
                 _shader.SetMatrix4("model", mm);
                 _shader.SetVector3("light.color", m.color);
