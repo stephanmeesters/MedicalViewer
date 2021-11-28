@@ -96,6 +96,7 @@ namespace LearnOpenTK
         // The shader class's code is in the Common project.
         // What shaders are and what they're used for will be explained later in this tutorial.
         private Shader _shader;
+        private Shader _shaderObjectID;
         private Shader _shaderPlane;
 
         private Texture3D _tex3D;
@@ -111,6 +112,8 @@ namespace LearnOpenTK
         private long _prevElapsedTime;
         private float[] _previousFPS = new float[100];
         private int _previousFPSIndex;
+
+        private int cval;
 
         public Window(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings)
             : base(gameWindowSettings, nativeWindowSettings)
@@ -132,6 +135,9 @@ namespace LearnOpenTK
             Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
 
             _shader = new Shader("Shaders/vshader.glsl", "Shaders/fshader.glsl");
+            Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
+
+            _shaderObjectID = new Shader("Shaders/vshader_objectid.glsl", "Shaders/fshader_objectid.glsl");
             Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
 
             _shaderPlane = new Shader("Shaders/vshader.glsl", "Shaders/fshader_plane.glsl");
@@ -188,14 +194,19 @@ namespace LearnOpenTK
             modelTransform *= Matrix4.CreateScale(1.0f / 512.0f, 1.0f / 512.0f, 1.0f / 363.0f);
             modelTransform *= Matrix4.CreateTranslation(1.0f, 0.0f, 0.0f);
 
+            float objectID = 0.0f;
             Random rand = new Random();
             foreach (string f in modelFiles)
             {
+                objectID += 10.0f;
+
                 Model m = Model.Load(f);
                 m.ConstructVAO();
-                m.BindToShader(_shader);
+                //m.BindToShader(_shader);
+                m.BindToShader(_shaderObjectID);
                 m.transform = modelTransform;
                 m.color = new Vector3((float)rand.NextDouble(), (float)rand.NextDouble(), (float)rand.NextDouble());
+                m.objectID = objectID;
                 _models.Add(m);
             }
 
@@ -244,11 +255,33 @@ namespace LearnOpenTK
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
             //
+            //  object id map
+            //
+
+            _shaderObjectID.Use();
+            Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
+
+            _shaderObjectID.SetMatrix4("view", _camera.GetViewMatrix());
+            _shaderObjectID.SetMatrix4("projection", _camera.GetProjectionMatrix());
+
+            foreach (Model m in _models)
+            {
+                _shaderObjectID.SetMatrix4("model", m.transform);
+                _shaderObjectID.SetFloat("object_id", m.objectID/255.0f);
+                m.Draw();
+            }
+
+            IntPtr Pixel = new IntPtr();
+            GL.ReadPixels(600, 600, 1, 1, PixelFormat.Red, PixelType.UnsignedByte, ref Pixel);
+            cval = (int)Pixel;
+
+            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+
+            //
             //  anatomical models
             //
 
-            
-            _tex3D.Use(TextureUnit.Texture0);
+            /*_tex3D.Use(TextureUnit.Texture0);
             _shader.Use();
             Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
 
@@ -284,7 +317,7 @@ namespace LearnOpenTK
                 _shader.SetMatrix4("model", mm);
                 _shader.SetVector3("light.color", m.color);
                 m.Draw();
-            }
+            }*/
 
             //
             //  cube model
@@ -297,11 +330,11 @@ namespace LearnOpenTK
             
             _shaderPlane.SetMatrix4("view", _camera.GetViewMatrix());
             _shaderPlane.SetMatrix4("projection", _camera.GetProjectionMatrix());
-            norm = 45;
+            var norm = 45;
             _shaderPlane.SetFloat("norm", (float)norm);
             _shaderPlane.SetVector3("viewPos", _camera.Position);
             Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
-
+            float time = (float)(_sw.ElapsedMilliseconds) / 1000.0f;
             foreach (Model m in _planes)
             {
                 if(m.name == "Plane_X")
@@ -314,9 +347,7 @@ namespace LearnOpenTK
 
             //
             //  coordinate system
-            //
-
-            
+            //            
 
             SwapBuffers();
 
@@ -334,7 +365,7 @@ namespace LearnOpenTK
             long newTime = _sw.ElapsedMilliseconds;
             long diff = newTime - _prevElapsedTime;
             if (_prevElapsedTime != 0)
-                this.Title = string.Format("Medical Viewer - frametime: {0} ms ({1} FPS)", diff, Math.Round(_previousFPS.Average()));
+                this.Title = string.Format("Medical Viewer - frametime: {0} ms ({1} FPS) - {2}", diff, Math.Round(_previousFPS.Average()), cval);
             _prevElapsedTime = newTime;
             if(diff > 0)
             {

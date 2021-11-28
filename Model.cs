@@ -21,6 +21,8 @@ namespace LearnOpenTK
         public string name = "";
         public bool visible = true;
 
+        public float objectID;
+
         public Model(Mesh mesh)
         {
             this.mesh = mesh;
@@ -57,6 +59,7 @@ namespace LearnOpenTK
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, vbo_index);
             Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
 
+            
             var positionLocation = shader.GetAttribLocation("aPos");
             GL.EnableVertexAttribArray(positionLocation);
             GL.VertexAttribPointer(positionLocation, 3, VertexAttribPointerType.Float, false, mesh.stride * sizeof(float), 0);
@@ -66,6 +69,8 @@ namespace LearnOpenTK
             GL.EnableVertexAttribArray(normalLocation);
             GL.VertexAttribPointer(normalLocation, 3, VertexAttribPointerType.Float, true, mesh.stride * sizeof(float), 3 * sizeof(float));
             Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
+
+            
 
             GL.BindVertexArray(0);
             GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
