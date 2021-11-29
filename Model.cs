@@ -22,6 +22,8 @@ namespace LearnOpenTK
         public bool visible = true;
         public float objectID;
 
+        public Vector3 centerOfMass = new Vector3();
+
         public Model(Mesh mesh)
         {
             this.mesh = mesh;
@@ -94,6 +96,19 @@ namespace LearnOpenTK
             GL.DeleteBuffer(vbo_vertex);
             GL.DeleteBuffer(vbo_index);
             GL.DeleteVertexArray(vao);
+        }
+
+        public void CalculateCenterOfMass()
+        {
+            Vector3 centerOfMass = new Vector3();
+            for (int i = 0; i < this.mesh.numberOfVertices; i++)
+            {
+                Vector4 m = new Vector4(this.mesh.vertices[i]);
+                m *= this.transform;
+                centerOfMass += new Vector3(m.X, m.Y, m.Z);
+            }
+            centerOfMass /= this.mesh.numberOfVertices;
+            this.centerOfMass = centerOfMass;
         }
     }
 }

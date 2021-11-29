@@ -20,11 +20,12 @@ uniform float norm;
 uniform vec3 viewPos;
 
 uniform float objectID;
-uniform int normalRender;
+uniform int renderMode;
+uniform vec3 outlineColor;
 
 void main()
 {
-    if(normalRender == 1)
+    if(renderMode == 1)
     {
         // ambient
         vec3 colorc = vec3(texture(sampler, vec3(1-FragPos.x, FragPos.y, FragPos.z)).r);
@@ -54,8 +55,12 @@ void main()
         vec3 result = ambient + diffuse + specular;
         fragColor = vec4(result, 1.0);// + vec4(normv, 1.0);
     }
-    else
+    else if(renderMode == 2)
     {
         fragColor = vec4(vec3(objectID), 1.0);
+    }
+    else if(renderMode == 3)
+    {
+        fragColor = vec4(outlineColor, 1.0);
     }
 }

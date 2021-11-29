@@ -17,5 +17,5 @@ void main()
     gl_Position = vec4(aPos, 1.0) * model * view * projection;
     FragPos = vec3(vec4(aPos, 1.0) * model);
     Normal = aNormal * mat3(transpose(inverse(model)));
-    LightDir = vec3(gl_Position.x, gl_Position.y, gl_Position.z) - normalize(viewPos); 
+    LightDir = vec3(gl_Position.x, gl_Position.y, gl_Position.z) - normalize(viewPos)*30; 
 }

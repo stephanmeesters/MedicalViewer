@@ -103,6 +103,7 @@ namespace LearnOpenTK
                 m.transform = modelTransform;
                 m.color = new Vector3((float)rand.NextDouble(), (float)rand.NextDouble(), (float)rand.NextDouble());
                 m.objectID = objectID;
+                m.CalculateCenterOfMass();
                 _models.Add(m);
             }
 
@@ -142,7 +143,7 @@ namespace LearnOpenTK
             // GL settings
             GL.Enable(EnableCap.DepthTest);
             GL.DepthMask(true);
-            GL.DepthFunc(DepthFunction.Lequal);
+            GL.DepthFunc(DepthFunction.Less);
 
             GL.ClearColor(1.0f, 1.0f, 1.0f, 1.0f);
             GL.Enable(EnableCap.CullFace);
@@ -150,7 +151,14 @@ namespace LearnOpenTK
 
             GL.Enable(EnableCap.Multisample);
 
-            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+            GL.Enable(EnableCap.StencilTest);
+
+            GL.StencilOp(StencilOp.Keep, StencilOp.Keep, StencilOp.Replace);
+            GL.StencilFunc(StencilFunction.Always, 1, 0xFF);
+
+            GL.StencilMask(0xFF);
+            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
+            GL.StencilMask(0x00);
 
             //
             //  object id map
@@ -159,20 +167,19 @@ namespace LearnOpenTK
             _shader.Use();
             
             float time = (float)(_sw.ElapsedMilliseconds) / 1000.0f;
-            _shader.SetInt("normalRender", 0);
+            _shader.SetInt("renderMode", 0);
             _shader.SetMatrix4("view", _camera.GetViewMatrix());
             _shader.SetMatrix4("projection", _camera.GetProjectionMatrix());
+            _shader.SetInt("renderMode", 2);
             Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
 
             foreach (Model m in _models)
             {
-
-                Vector4 centroidTrans = new Vector4(m.mesh.centerOfMass);
-                centroidTrans *= m.transform;
+                Vector4 centroidTrans = new Vector4(m.centerOfMass);
                 Matrix4 mm = m.transform;
-                //mm *= Matrix4.CreateTranslation(centroidTrans.X, centroidTrans.Y, centroidTrans.Z);
-                //mm *= Matrix4.CreateScale((float)(1.0-0.05*(0.5 + 0.5*Math.Sin(time*0.5))));
-                //mm *= Matrix4.CreateTranslation(-centroidTrans.X, -centroidTrans.Y, -centroidTrans.Z);
+                mm *= Matrix4.CreateTranslation(-centroidTrans.X, -centroidTrans.Y, -centroidTrans.Z);
+                mm *= Matrix4.CreateScale((float)(1.0 - 0.02 * (0.5 + 0.5 * Math.Sin(time * 0.8))));
+                mm *= Matrix4.CreateTranslation(centroidTrans.X, centroidTrans.Y, centroidTrans.Z);
 
                 _shader.SetMatrix4("model", mm);
                 _shader.SetVector3("light.color", m.color);
@@ -184,7 +191,7 @@ namespace LearnOpenTK
             GL.ReadPixels(600, 600, 1, 1, PixelFormat.Red, PixelType.UnsignedByte, ref Pixel);
             cval = (int)Pixel;
 
-            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit );
 
             //
             //  anatomical models
@@ -198,24 +205,22 @@ namespace LearnOpenTK
             _shader.SetVector3("light.diffuse", new Vector3(0.8f));
             _shader.SetVector3("light.specular", new Vector3(1.0f));
             _shader.SetFloat("light.colorStrength", 0.0f);
-            _shader.SetInt("normalRender", 1);
+            _shader.SetInt("renderMode", 1);
 
             double norm = 65;// 1.0 / (_tex3D.ImageHighestIntensity - _tex3D.ImageLowestIntensity);
                              //_shader.SetFloat("minIntensity", (float)_tex3D.ImageLowestIntensity);
                              // _shader.SetFloat("maxIntensity", (float)_tex3D.ImageHighestIntensity);
             _shader.SetFloat("norm", (float)norm);
             Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
-            _shader.SetInt("normalRender", 1);
 
+            _shader.SetInt("renderMode", 1);
             foreach (Model m in _models)
             {
-
-                Vector4 centroidTrans = new Vector4(m.mesh.centerOfMass);
-                centroidTrans *= m.transform;
+                Vector4 centroidTrans = new Vector4(m.centerOfMass);
                 Matrix4 mm = m.transform;
-                mm *= Matrix4.CreateTranslation(centroidTrans.X-1.0f, centroidTrans.Y, centroidTrans.Z);
+                mm *= Matrix4.CreateTranslation(-centroidTrans.X, -centroidTrans.Y, -centroidTrans.Z);
                 mm *= Matrix4.CreateScale((float)(1.0-0.02*(0.5 + 0.5*Math.Sin(time*0.8))));
-                mm *= Matrix4.CreateTranslation(-centroidTrans.X+1.0f, -centroidTrans.Y, -centroidTrans.Z);
+                mm *= Matrix4.CreateTranslation(centroidTrans.X, centroidTrans.Y, centroidTrans.Z);
 
                 _shader.SetMatrix4("model", mm);
                 _shader.SetVector3("light.color", m.color);
@@ -251,6 +256,59 @@ namespace LearnOpenTK
             //
             //  coordinate system
             //
+
+            //
+            //  selected object outline
+            //
+
+            {
+                // disable writing to color space
+                GL.ColorMask(false, false, false, false);
+                GL.DepthMask(false);
+
+                GL.StencilOp(StencilOp.Replace, StencilOp.Replace, StencilOp.Replace);
+                GL.StencilFunc(StencilFunction.Always, 1, 0xFF);
+                GL.StencilMask(0xFF); // enable writing to stencil
+                GL.Disable(EnableCap.DepthTest);
+
+                int index = cval / 10 - 1;
+                index = Math.Clamp(index, 0, _models.Count - 1);
+                Model m = _models[index];
+
+                Vector4 centroidTrans = new Vector4(m.centerOfMass);
+                Matrix4 mm = m.transform;
+                mm *= Matrix4.CreateTranslation(-centroidTrans.X, -centroidTrans.Y, -centroidTrans.Z);
+                mm *= Matrix4.CreateScale((float)(1.0 - 0.02 * (0.5 + 0.5 * Math.Sin(time * 0.8))));
+                mm *= Matrix4.CreateTranslation(centroidTrans.X, centroidTrans.Y, centroidTrans.Z);
+
+                _shader.SetInt("renderMode", 3);
+                _shader.SetMatrix4("model", mm);
+                _shader.SetVector3("light.color", m.color);
+                m.Draw();
+
+                GL.StencilFunc(StencilFunction.Notequal, 1, 0xFF); // only allow fragments outside the stencil
+                GL.StencilMask(0x00); // disable writing to stencil
+
+                // enable writing to color space
+                GL.ColorMask(true, true, true, true);
+                GL.DepthMask(true);
+
+                _shader.SetInt("renderMode", 3);
+                mm *= Matrix4.CreateTranslation(centroidTrans.X* 0.7f, centroidTrans.Y * 0.7f, centroidTrans.Z * 0.7f);
+                mm *= Matrix4.CreateScale(1.02f);
+                mm *= Matrix4.CreateTranslation(-centroidTrans.X * 0.7f, -centroidTrans.Y * 0.7f, -centroidTrans.Z * 0.7f);
+
+                _shader.SetMatrix4("model", mm);
+                _shader.SetVector3("outlineColor", new Vector3(1.0f, 0.0f, 0.0f));
+                m.Draw();
+
+                //GL.ColorMask(true, true, true, true);
+                //GL.DepthMask(true);
+
+                GL.StencilFunc(StencilFunction.Always, 1, 0xFF);
+                GL.StencilMask(0x00);
+                GL.Enable(EnableCap.DepthTest);
+            }
 
             SwapBuffers();
 
