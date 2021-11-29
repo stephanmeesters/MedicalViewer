@@ -11,11 +11,23 @@ uniform mat4 view;
 uniform mat4 projection;
 
 uniform vec3 viewPos;
+uniform int renderMode;
 
 void main()
 {
-    gl_Position = vec4(aPos, 1.0) * model * view * projection;
-    FragPos = vec3(vec4(aPos, 1.0) * model);
-    Normal = aNormal * mat3(transpose(inverse(model)));
-    LightDir = vec3(gl_Position.x, gl_Position.y, gl_Position.z) - normalize(viewPos)*30; 
+    if(renderMode == 3)
+    {
+        gl_Position = vec4(aPos - normalize(aNormal), 1.0) * model * view * projection;
+        FragPos = vec3(1.0);
+        Normal = vec3(1.0);
+        LightDir = vec3(1.0); 
+    }
+    else
+    {
+        gl_Position = vec4(aPos, 1.0) * model * view * projection;
+        FragPos = vec3(vec4(aPos, 1.0) * model);
+        Normal = aNormal * mat3(transpose(inverse(model)));
+        LightDir = vec3(gl_Position.x, gl_Position.y, gl_Position.z) - normalize(viewPos)*30; 
+    }
+    
 }

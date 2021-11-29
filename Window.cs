@@ -12,36 +12,62 @@ namespace LearnOpenTK
 {
     public class Window : GameWindow
     {
-        
-
-        private List<Model> _models = new List<Model>();
-        private List<Model> _planes = new List<Model>();
+        public enum RenderMode : int
+        {
+            Regular = 1,
+            ObjectID = 2,
+            Outline = 3
+        }
 
         private Shader _shader;
         private Shader _shaderPlane;
 
         private Texture3D _tex3D;
 
+        private List<Model> _models = new List<Model>();
+        private List<Model> _planes = new List<Model>();
+
         private Camera _camera;
 
         Stopwatch _sw;
 
-
         private bool _firstMove = true;
-
         private Vector2 _lastPos;
-
         private int cval;
-
         private long _prevElapsedTime;
         private float[] _previousFPS = new float[100];
         private int _previousFPSIndex;
+
+        ///
+
+        string[] modelFiles =
+        {
+            "Data/CT/205.obj",
+            "Data/CT/420.obj",
+            "Data/CT/500.obj",
+            "Data/CT/550.obj",
+            "Data/CT/600.obj",
+            "Data/CT/820.obj",
+            "Data/CT/850.obj"
+        };
+
+        string[] modelTitles =
+        {
+            "myocardium of the left ventricle",
+            "left atrium blood cavity",
+            "left ventricle blood cavity",
+            "right atrium blood cavity",
+            "right ventricle blood cavity",
+            "pulmonary artery",
+            "ascending aorta"
+        };
+
+        ///
 
         public Window(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings)
             : base(gameWindowSettings, nativeWindowSettings)
         {
         }
-
 
         // Now, we start initializing OpenGL.
         protected override void OnLoad()
@@ -74,17 +100,6 @@ namespace LearnOpenTK
             _camera = new Camera(camPos, Size.X / (float)Size.Y);
 
             // load anatomical models
-            string[] modelFiles =
-            {
-                "Data/CT/205.obj",
-                "Data/CT/420.obj",
-                "Data/CT/500.obj",
-                "Data/CT/550.obj",
-                "Data/CT/600.obj",
-                "Data/CT/820.obj",
-                "Data/CT/850.obj"
-            };
-
             Matrix4 modelTransform = Matrix4.Identity;
             modelTransform *= Matrix4.CreateTranslation(-45.5f, 228.585f, 271.88f);
             modelTransform *= Matrix4.CreateScale(1.0f / 0.355469f, 1.0f / 0.355469f, 1.0f / 0.45f);
@@ -167,10 +182,9 @@ namespace LearnOpenTK
             _shader.Use();
             
             float time = (float)(_sw.ElapsedMilliseconds) / 1000.0f;
-            _shader.SetInt("renderMode", 0);
+            _shader.SetInt("renderMode", (int)RenderMode.ObjectID);
             _shader.SetMatrix4("view", _camera.GetViewMatrix());
             _shader.SetMatrix4("projection", _camera.GetProjectionMatrix());
-            _shader.SetInt("renderMode", 2);
             Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
 
             foreach (Model m in _models)
@@ -205,7 +219,6 @@ namespace LearnOpenTK
             _shader.SetVector3("light.diffuse", new Vector3(0.8f));
             _shader.SetVector3("light.specular", new Vector3(1.0f));
             _shader.SetFloat("light.colorStrength", 0.0f);
-            _shader.SetInt("renderMode", 1);
 
             double norm = 65;// 1.0 / (_tex3D.ImageHighestIntensity - _tex3D.ImageLowestIntensity);
                              //_shader.SetFloat("minIntensity", (float)_tex3D.ImageLowestIntensity);
@@ -213,7 +226,7 @@ namespace LearnOpenTK
             _shader.SetFloat("norm", (float)norm);
             Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
 
-            _shader.SetInt("renderMode", 1);
+            _shader.SetInt("renderMode", (int)RenderMode.Regular);
             foreach (Model m in _models)
             {
                 Vector4 centroidTrans = new Vector4(m.centerOfMass);
@@ -281,7 +294,7 @@ namespace LearnOpenTK
                 mm *= Matrix4.CreateScale((float)(1.0 - 0.02 * (0.5 + 0.5 * Math.Sin(time * 0.8))));
                 mm *= Matrix4.CreateTranslation(centroidTrans.X, centroidTrans.Y, centroidTrans.Z);
 
-                _shader.SetInt("renderMode", 3);
+                _shader.SetInt("renderMode", (int)RenderMode.Regular);
                 _shader.SetMatrix4("model", mm);
                 _shader.SetVector3("light.color", m.color);
                 m.Draw();
@@ -293,17 +306,10 @@ namespace LearnOpenTK
                 GL.ColorMask(true, true, true, true);
                 GL.DepthMask(true);
 
-                _shader.SetInt("renderMode", 3);
-                mm *= Matrix4.CreateTranslation(centroidTrans.X* 0.7f, centroidTrans.Y * 0.7f, centroidTrans.Z * 0.7f);
-                mm *= Matrix4.CreateScale(1.02f);
-                mm *= Matrix4.CreateTranslation(-centroidTrans.X * 0.7f, -centroidTrans.Y * 0.7f, -centroidTrans.Z * 0.7f);
-
+                _shader.SetInt("renderMode", (int)RenderMode.Outline);
                 _shader.SetMatrix4("model", mm);
                 _shader.SetVector3("outlineColor", new Vector3(1.0f, 0.0f, 0.0f));
                 m.Draw();
-
-                //GL.ColorMask(true, true, true, true);
-                //GL.DepthMask(true);
 
                 GL.StencilFunc(StencilFunction.Always, 1, 0xFF);
                 GL.StencilMask(0x00);
@@ -313,20 +319,19 @@ namespace LearnOpenTK
             SwapBuffers();
 
             GL.BindVertexArray(0);
-
-            //https://github.com/dabbertorres/ObjRenderer/blob/master/ObjRenderer/RenderTab.cs
-            // https://dreamstatecoding.blogspot.com/2018/03/opengl-4-with-opentk-in-c-part-15.html
         }
 
         protected override void OnUpdateFrame(FrameEventArgs e)
         {
             base.OnUpdateFrame(e);
 
-            
+            int index = cval / 10 - 1;
+            index = Math.Clamp(index, 0, _models.Count - 1);
+
             long newTime = _sw.ElapsedMilliseconds;
             long diff = newTime - _prevElapsedTime;
             if (_prevElapsedTime != 0)
-                this.Title = string.Format("Medical Viewer - frametime: {0} ms ({1} FPS) - {2}", diff, Math.Round(_previousFPS.Average()), cval);
+                this.Title = string.Format("Medical Viewer - frametime: {0} ms ({1} FPS) - {2}", diff, Math.Round(_previousFPS.Average()), modelTitles[index]);
             _prevElapsedTime = newTime;
             if(diff > 0)
             {
