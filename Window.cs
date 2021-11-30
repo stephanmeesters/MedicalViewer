@@ -33,7 +33,7 @@ namespace LearnOpenTK
 
         Stopwatch _sw;
 
-        private float _xRot = 0.0f;
+        private float _xRot = -(float)Math.PI / 2.0f;
         private float _yRot = 0.0f;
         private float _zRot = 0.0f;
 
@@ -84,7 +84,7 @@ namespace LearnOpenTK
             base.OnLoad();
 
             // window settings
-            CursorGrabbed = true;
+           // CursorGrabbed = true;
 
             // start with black screen
             GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -242,9 +242,7 @@ namespace LearnOpenTK
             //
 
             float time = (float)(_sw.ElapsedMilliseconds) / 1000.0f;
-
-            _xRot = -(float)Math.PI / 2.0f;
-            _yRot = time;
+            
 
             foreach (Model m in _models)
             {
@@ -258,7 +256,7 @@ namespace LearnOpenTK
                 mm2 *= Matrix4.CreateTranslation(-0.5f, -0.5f, -0.5f);
                 mm2 *= Matrix4.CreateRotationX(_xRot);
                 mm2 *= Matrix4.CreateRotationY(_yRot);
-                //mm2 *= Matrix4.CreateRotationZ(time);
+                mm2 *= Matrix4.CreateRotationZ(_zRot);
                 mm2 *= Matrix4.CreateTranslation(0.5f, 0.5f, 0.5f);
 
                 m.frame_transform = mm;
@@ -297,7 +295,7 @@ namespace LearnOpenTK
             }
 
             IntPtr Pixel = new IntPtr();
-            GL.ReadPixels(600, 600, 1, 1, PixelFormat.Red, PixelType.UnsignedByte, ref Pixel);
+            GL.ReadPixels((int)(MousePosition.X), (int)(Size.Y - MousePosition.Y), 1, 1, PixelFormat.Red, PixelType.UnsignedByte, ref Pixel);
             cval = (int)Pixel;
 
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit );
@@ -393,8 +391,12 @@ namespace LearnOpenTK
             //
 
             float index = cval;
+            var mouse = MouseState;
             foreach (Model m in _models)
             {
+                if(mouse.IsAnyButtonDown)
+                    m.isSelected = (int)m.objectID == index;
+
                 if (m.objectID != index)
                     continue;
 
@@ -433,7 +435,8 @@ namespace LearnOpenTK
 
             foreach (Model m in _widgets)
             {
-                m.isSelected = (int)m.objectID == index;
+                if (mouse.IsAnyButtonDown)
+                    m.isSelected = (int)m.objectID == index;
             }
 
             SwapBuffers();
@@ -473,7 +476,43 @@ namespace LearnOpenTK
                 Close();
             }
 
-            const float cameraSpeed = 1.5f;
+            var mouse = MouseState;
+
+            if (_firstMove)
+            {
+                _lastPos = new Vector2(mouse.X, mouse.Y);
+                _firstMove = false;
+            }
+            else
+            {
+                var deltaX = mouse.X - _lastPos.X;
+                var deltaY = mouse.Y - _lastPos.Y;
+                _lastPos = new Vector2(mouse.X, mouse.Y);
+
+                if(mouse.IsAnyButtonDown)
+                {
+                    foreach (Model m in _widgets)
+                    {
+                        if (m.isSelected)
+                        {
+                            if (m.name == "Rotation_Widget_X")
+                            {
+                                _xRot += deltaX * 0.005f;
+                            }
+                            else if (m.name == "Rotation_Widget_Y")
+                            {
+                                _yRot += deltaX * 0.005f;
+                            }
+                            else if (m.name == "Rotation_Widget_Z")
+                            {
+                                _zRot += deltaX * 0.005f;
+                            }
+                        }
+                    }
+                }
+            }
+
+            /*const float cameraSpeed = 1.5f;
             const float sensitivity = 0.2f;
 
             if (input.IsKeyDown(Keys.W))
@@ -517,7 +556,7 @@ namespace LearnOpenTK
                 _camera.Yaw += deltaX * sensitivity;
                 _camera.Pitch -= deltaY * sensitivity;
                 
-            }
+            }*/
         }
 
         protected override void OnResize(ResizeEventArgs e)
