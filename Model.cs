@@ -28,6 +28,7 @@ namespace LearnOpenTK
         public Matrix4 frame_transform2;
 
         public bool isSelected = false;
+        public bool isHovering = false;
 
         public Model(Mesh mesh)
         {

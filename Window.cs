@@ -43,8 +43,9 @@ namespace LearnOpenTK
         private long _prevElapsedTime;
         private float[] _previousFPS = new float[100];
         private int _previousFPSIndex;
+        private bool _hasActedOnClick = false;
 
-        ///
+        
 
         string[] modelFiles =
         {
@@ -65,10 +66,7 @@ namespace LearnOpenTK
             "right atrium blood cavity",
             "right ventricle blood cavity",
             "pulmonary artery",
-            "ascending aorta",
-            "rotation x",
-            "rotation y",
-            "rotation z"
+            "ascending aorta"
         };
 
         ///
@@ -110,7 +108,7 @@ namespace LearnOpenTK
             };
             _camera = new Camera(camPos, Size.X / (float)Size.Y);
             _camera.Yaw = -136f;
-            _camera.Pitch = -6.0f;
+            _camera.Pitch = -10.0f;
 
             // load anatomical models
             // load sform or qform
@@ -125,17 +123,16 @@ namespace LearnOpenTK
                                 1.0f / _tex3D.Dimensions.Z);
 
             Random rand = new Random();
-            float objectID = 0.0f;
+            int objectCounter = 0;
             foreach (string f in modelFiles)
             {
-                objectID += 10.0f;
-
                 Model m = Model.Load(f);
                 m.ConstructVAO();
                 m.BindToShader(_shader);
                 m.transform = modelTransform;
-                m.color = new Vector3((float)rand.NextDouble(), (float)rand.NextDouble(), (float)rand.NextDouble());
-                m.objectID = objectID;
+                m.color = new Vector3((float)rand.NextDouble(), (float)rand.NextDouble(), (float)rand.NextDouble());  
+                m.name = _modelTitles[objectCounter];
+                m.objectID = ++objectCounter * 10.0f;
                 m.CalculateCenterOfMass();
                 _models.Add(m);
             }
@@ -167,9 +164,8 @@ namespace LearnOpenTK
             _planes.Add(plane_z);
 
             // create widgets
-            float widgetScale = 0.75f;
+            float widgetScale = 0.65f;
 
-            objectID += 10.0f;
             var rotation_widget_x = Model.Load("Data/rotation_widget.obj");
             rotation_widget_x.ConstructVAO();
             rotation_widget_x.BindToShader(_shaderWidget);
@@ -178,11 +174,10 @@ namespace LearnOpenTK
             rotation_widget_x.transform = Matrix4.CreateScale(widgetScale);
             rotation_widget_x.transform *= Matrix4.CreateRotationY((float)Math.PI / 2.0f);
             rotation_widget_x.transform *= Matrix4.CreateTranslation(0.5f, 0.5f, 0.5f);
-            rotation_widget_x.objectID = objectID;
+            rotation_widget_x.objectID = ++objectCounter * 10.0f;
             rotation_widget_x.name = "Rotation_Widget_X";
             _widgets.Add(rotation_widget_x);
 
-            objectID += 10.0f;
             var rotation_widget_y = Model.Load("Data/rotation_widget.obj");
             rotation_widget_y.ConstructVAO();
             rotation_widget_y.BindToShader(_shaderWidget);
@@ -191,11 +186,10 @@ namespace LearnOpenTK
             rotation_widget_y.transform = Matrix4.CreateScale(widgetScale);
             rotation_widget_y.transform *= Matrix4.CreateRotationX((float)Math.PI / 2.0f);
             rotation_widget_y.transform *= Matrix4.CreateTranslation(0.5f, 0.5f, 0.5f);
-            rotation_widget_y.objectID = objectID;
+            rotation_widget_y.objectID = ++objectCounter * 10.0f;
             rotation_widget_y.name = "Rotation_Widget_Y";
             _widgets.Add(rotation_widget_y);
 
-            objectID += 10.0f;
             var rotation_widget_z = Model.Load("Data/rotation_widget.obj");
             rotation_widget_z.ConstructVAO();
             rotation_widget_z.BindToShader(_shaderWidget);
@@ -204,7 +198,7 @@ namespace LearnOpenTK
             rotation_widget_z.CalculateCenterOfMass();
             rotation_widget_z.transform = Matrix4.CreateScale(widgetScale);
             rotation_widget_z.transform *= Matrix4.CreateTranslation(0.5f, 0.5f, 0.5f);
-            rotation_widget_z.objectID = objectID;
+            rotation_widget_z.objectID = ++objectCounter * 10.0f;
             rotation_widget_z.name = "Rotation_Widget_Z";
             _widgets.Add(rotation_widget_z);
 
@@ -237,12 +231,11 @@ namespace LearnOpenTK
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
             GL.StencilMask(0x00);
 
+            float time = (float)(_sw.ElapsedMilliseconds) / 1000.0f;
+
             //
             //  calculate transforms
             //
-
-            float time = (float)(_sw.ElapsedMilliseconds) / 1000.0f;
-            
 
             foreach (Model m in _models)
             {
@@ -378,7 +371,7 @@ namespace LearnOpenTK
                 _shaderWidget.SetMatrix4("model", mm);
                 _shaderWidget.SetMatrix4("view", _camera.GetViewMatrix());
                 _shaderWidget.SetMatrix4("projection", _camera.GetProjectionMatrix());
-                if(m.isSelected)
+                if(m.isSelected || m.isHovering)
                     _shaderWidget.SetVector3("color", new Vector3(1.0f, 1.0f, 0.0f));
                 else
                     _shaderWidget.SetVector3("color", m.color);
@@ -390,14 +383,9 @@ namespace LearnOpenTK
             //  selected object outline
             //
 
-            float index = cval;
-            var mouse = MouseState;
             foreach (Model m in _models)
             {
-                if(mouse.IsAnyButtonDown)
-                    m.isSelected = (int)m.objectID == index;
-
-                if (m.objectID != index)
+                if (!(m.isSelected || m.isHovering))
                     continue;
 
                 _shader.Use();
@@ -425,18 +413,15 @@ namespace LearnOpenTK
                 GL.DepthMask(true);
 
                 _shader.SetInt("renderMode", (int)RenderMode.Outline);
-                _shader.SetVector3("outlineColor", new Vector3(1.0f, 0.0f, 0.0f));
+                if(m.isSelected)
+                    _shader.SetVector3("outlineColor", new Vector3(1.0f, 1.0f, 0.0f));
+                else
+                    _shader.SetVector3("outlineColor", new Vector3(1.0f, 0.0f, 0.0f));
                 m.Draw();
 
                 GL.StencilFunc(StencilFunction.Always, 1, 0xFF);
                 GL.StencilMask(0x00);
                 GL.Enable(EnableCap.DepthTest);
-            }
-
-            foreach (Model m in _widgets)
-            {
-                if (mouse.IsAnyButtonDown)
-                    m.isSelected = (int)m.objectID == index;
             }
 
             SwapBuffers();
@@ -448,14 +433,21 @@ namespace LearnOpenTK
         {
             base.OnUpdateFrame(e);
 
-            int index = cval / 10 - 1;
-            index = Math.Clamp(index, 0, _modelTitles.Length - 1);
-
+            // calculate time passed
             long newTime = _sw.ElapsedMilliseconds;
             long diff = newTime - _prevElapsedTime;
+
+            // update window title and fps
+            string objectTitle = "";
+            foreach (Model m in _models)
+            {
+                if (m.isSelected)
+                    objectTitle = m.name;
+            }
             if (_prevElapsedTime != 0)
-                this.Title = string.Format("Medical Viewer - frametime: {0} ms ({1} FPS) - {2}", diff, Math.Round(_previousFPS.Average()), _modelTitles[index]);
+                this.Title = string.Format("Medical Viewer - frametime: {0} ms ({1} FPS) - {2}", diff, Math.Round(_previousFPS.Average()), objectTitle);
             _prevElapsedTime = newTime;
+
             if(diff > 0)
             {
                 _previousFPS[_previousFPSIndex] = 1000.0f / diff;
@@ -464,19 +456,74 @@ namespace LearnOpenTK
                     _previousFPSIndex = 0;
             }
 
+            // dont respond to any input if the window is not focussed
             if (!IsFocused)
             {
                 return;
             }
 
+            // press escape to close window
             var input = KeyboardState;
-
             if (input.IsKeyDown(Keys.Escape))
             {
                 Close();
             }
 
+            //
+            //  set hovering and object selection
+            //
+
             var mouse = MouseState;
+            foreach (Model m in _models)
+            {
+                if (m.objectID == (float)cval)
+                    m.isHovering = true;
+                else
+                    m.isHovering = false;
+
+                if (!_hasActedOnClick && m.isHovering && mouse.IsAnyButtonDown)
+                {
+                    m.isSelected = true;
+                    _hasActedOnClick = true;
+                    foreach (Model m2 in _models)
+                    {
+                        if (m.objectID != m2.objectID)
+                            m2.isSelected = false;
+                    }
+                }
+            }
+
+            foreach (Model m in _widgets)
+            {
+                if (m.objectID == (float)cval)
+                    m.isHovering = true;
+                else
+                    m.isHovering = false;
+
+                if (!_hasActedOnClick && m.isHovering && mouse.IsAnyButtonDown)
+                {
+                    m.isSelected = true;
+                    _hasActedOnClick = true;
+                    foreach (Model m2 in _widgets)
+                    {
+                        if (m.objectID != m2.objectID)
+                            m2.isSelected = false;
+                    }
+                }
+                else if(!mouse.IsAnyButtonDown)
+                {
+                    m.isSelected = false;
+                }
+            }
+
+            bool anyWidgetSelected = false;
+            foreach (Model m in _widgets)
+            {
+                if (m.isSelected)
+                    anyWidgetSelected = true;
+            }
+            if (!mouse.IsAnyButtonDown || !anyWidgetSelected)
+                _yRot += diff * 0.001f;
 
             if (_firstMove)
             {
@@ -512,51 +559,8 @@ namespace LearnOpenTK
                 }
             }
 
-            /*const float cameraSpeed = 1.5f;
-            const float sensitivity = 0.2f;
-
-            if (input.IsKeyDown(Keys.W))
-            {
-                _camera.Position += _camera.Front * cameraSpeed * (float)e.Time; // Forward
-            }
-            if (input.IsKeyDown(Keys.S))
-            {
-                _camera.Position -= _camera.Front * cameraSpeed * (float)e.Time; // Backwards
-            }
-            if (input.IsKeyDown(Keys.A))
-            {
-                _camera.Position -= _camera.Right * cameraSpeed * (float)e.Time; // Left
-            }
-            if (input.IsKeyDown(Keys.D))
-            {
-                _camera.Position += _camera.Right * cameraSpeed * (float)e.Time; // Right
-            }
-            if (input.IsKeyDown(Keys.Space))
-            {
-                _camera.Position += _camera.Up * cameraSpeed * (float)e.Time; // Up
-            }
-            if (input.IsKeyDown(Keys.LeftShift))
-            {
-                _camera.Position -= _camera.Up * cameraSpeed * (float)e.Time; // Down
-            }
-
-            var mouse = MouseState;
-
-            if (_firstMove)
-            {
-                _lastPos = new Vector2(mouse.X, mouse.Y);
-                _firstMove = false;
-            }
-            else
-            {
-                var deltaX = mouse.X - _lastPos.X;
-                var deltaY = mouse.Y - _lastPos.Y;
-                _lastPos = new Vector2(mouse.X, mouse.Y);
-
-                _camera.Yaw += deltaX * sensitivity;
-                _camera.Pitch -= deltaY * sensitivity;
-                
-            }*/
+            if (!mouse.IsAnyButtonDown)
+                _hasActedOnClick = false;
         }
 
         protected override void OnResize(ResizeEventArgs e)
