@@ -42,10 +42,6 @@ namespace LearnOpenTK
                 this.vertices_attributes[i * this.stride + 2] = this.vertices[i].Z;
 
                 centerOfMass += this.vertices[i];
-
-				/*this.vertices_attributes[i * this.stride + 3] = this.normals[i].X;
-				this.vertices_attributes[i * this.stride + 4] = this.normals[i].Y;
-				this.vertices_attributes[i * this.stride + 5] = this.normals[i].Z;*/
 			}
 			centerOfMass /= this.numberOfVertices;
 
@@ -66,45 +62,6 @@ namespace LearnOpenTK
 				this.vertices_attributes[i * this.stride + 4] = normals_averaged[i].Y;
 				this.vertices_attributes[i * this.stride + 5] = normals_averaged[i].Z;
 			}
-
-
-
-			/*
-						Vector3 min = vertices[0];
-						Vector3 max = vertices[0];
-
-						foreach (Vector3 v in vertices)
-						{
-							if (v.X <= min.X)
-							{
-								min.X = v.X;
-							}
-							else if (v.X >= max.X)
-							{
-								max.X = v.X;
-							}
-
-							if (v.Y <= min.Y)
-							{
-								min.Y = v.Y;
-							}
-							else if (v.Y >= max.Y)
-							{
-								max.Y = v.Y;
-							}
-
-							if (v.Z <= min.Z)
-							{
-								min.Z = v.Z;
-							}
-							else if (v.Z >= max.Z)
-							{
-								max.Z = v.Z;
-							}
-						}
-
-						boundingBox = new BoundingBox(min, max);*/
-
 
 		}
 	}

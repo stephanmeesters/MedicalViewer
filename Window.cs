@@ -107,11 +107,10 @@ namespace LearnOpenTK
             _camera = new Camera(camPos, Size.X / (float)Size.Y);
 
             // load anatomical models
-            Matrix4 modelTransform = Matrix4.Identity;
             // load sform or qform
-            modelTransform *= Matrix4.CreateScale(-0.355469f, 0.355469f, 0.45f);
-            modelTransform *= Matrix4.CreateTranslation(45.5f, -228.585f, -271.88f);
-            // transforms to world coordinates
+            Matrix4 modelTransform = _tex3D.Transformation;
+            modelTransform.Transpose();
+            // transform to world coordinates
             modelTransform.Invert();
             // normalize coordinates within 0-1 range
             modelTransform *= Matrix4.CreateScale(1.0f / 512.0f, 1.0f / 512.0f, 1.0f / 363.0f);

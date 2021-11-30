@@ -3,6 +3,7 @@ using PixelFormat = OpenTK.Graphics.OpenGL4.PixelFormat;
 using System;
 using itk.simple;
 using System.Diagnostics;
+using OpenTK.Mathematics;
 
 namespace LearnOpenTK
 {
@@ -13,6 +14,8 @@ namespace LearnOpenTK
 
         public readonly double ImageHighestIntensity;
         public readonly double ImageLowestIntensity;
+
+        public readonly Matrix4 Transformation;
 
         public static Texture3D LoadFromFile(string path)
         {
@@ -27,6 +30,43 @@ namespace LearnOpenTK
             ImageFileReader reader = new ImageFileReader();
             reader.SetFileName(path);
             Image image = reader.Execute();
+            var aa = image.GetMetaDataKeys();
+            for(int i = 0; i<aa.Count; i++)
+            {
+                var key = aa[i];
+                var ss = image.GetMetaData(aa[i]);
+            }
+
+            var srow_x = image.GetMetaData("srow_x");
+            var srow_y = image.GetMetaData("srow_y");
+            var srow_z = image.GetMetaData("srow_z");
+
+            string[] srow_x_parts = srow_x.Split(' ');
+            string[] srow_y_parts = srow_y.Split(' ');
+            string[] srow_z_parts = srow_z.Split(' ');
+
+            Matrix4 mat = new Matrix4()
+            {
+                Row0 = new Vector4(
+                    float.Parse(srow_x_parts[0], System.Globalization.CultureInfo.InvariantCulture),
+                    float.Parse(srow_x_parts[1], System.Globalization.CultureInfo.InvariantCulture),
+                    float.Parse(srow_x_parts[2], System.Globalization.CultureInfo.InvariantCulture),
+                    float.Parse(srow_x_parts[3], System.Globalization.CultureInfo.InvariantCulture)
+                    ),
+                Row1 = new Vector4(
+                    float.Parse(srow_y_parts[0], System.Globalization.CultureInfo.InvariantCulture),
+                    float.Parse(srow_y_parts[1], System.Globalization.CultureInfo.InvariantCulture),
+                    float.Parse(srow_y_parts[2], System.Globalization.CultureInfo.InvariantCulture),
+                    float.Parse(srow_y_parts[3], System.Globalization.CultureInfo.InvariantCulture)
+                    ),
+                Row2 = new Vector4(
+                    float.Parse(srow_z_parts[0], System.Globalization.CultureInfo.InvariantCulture),
+                    float.Parse(srow_z_parts[1], System.Globalization.CultureInfo.InvariantCulture),
+                    float.Parse(srow_z_parts[2], System.Globalization.CultureInfo.InvariantCulture),
+                    float.Parse(srow_z_parts[3], System.Globalization.CultureInfo.InvariantCulture)
+                    ),
+                Row3 = new Vector4(0.0f, 0.0f, 0.0f, 1.0f)
+            };
 
             MinimumMaximumImageFilter filter = new MinimumMaximumImageFilter();
             filter.Execute(image);
@@ -66,14 +106,15 @@ namespace LearnOpenTK
 
             GL.GenerateMipmap(GenerateMipmapTarget.Texture3D);
 
-            return new Texture3D(handle, minIntensity, maxIntensity);
+            return new Texture3D(handle, minIntensity, maxIntensity, mat);
         }
 
-        public Texture3D(int glHandle, double minIntensity, double maxIntensity)
+        public Texture3D(int glHandle, double minIntensity, double maxIntensity, Matrix4 transformation)
         {
             Handle = glHandle;
             ImageLowestIntensity = minIntensity;
             ImageHighestIntensity = maxIntensity;
+            Transformation = transformation;
         }
 
         // Activate texture
