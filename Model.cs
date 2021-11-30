@@ -24,6 +24,9 @@ namespace LearnOpenTK
 
         public Vector3 centerOfMass = new Vector3();
 
+        public Matrix4 frame_transform;
+        public Matrix4 frame_transform2;
+
         public Model(Mesh mesh)
         {
             this.mesh = mesh;

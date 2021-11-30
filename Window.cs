@@ -21,11 +21,13 @@ namespace LearnOpenTK
 
         private Shader _shader;
         private Shader _shaderPlane;
+        private Shader _shaderWidget;
 
         private Texture3D _tex3D;
 
         private List<Model> _models = new List<Model>();
         private List<Model> _planes = new List<Model>();
+        private List<Model> _widgets = new List<Model>();
 
         private Camera _camera;
 
@@ -59,7 +61,8 @@ namespace LearnOpenTK
             "right atrium blood cavity",
             "right ventricle blood cavity",
             "pulmonary artery",
-            "ascending aorta"
+            "ascending aorta",
+            "rotation",
         };
 
         ///
@@ -89,48 +92,27 @@ namespace LearnOpenTK
             // compile shaders
             _shader = new Shader("Shaders/vshader.glsl", "Shaders/fshader.glsl");
             _shaderPlane = new Shader("Shaders/vshader.glsl", "Shaders/fshader_plane.glsl");
+            _shaderWidget = new Shader("Shaders/vshader_widget.glsl", "Shaders/fshader_widget.glsl");
+
 
             // set camera
             Vector3 camPos = new Vector3
             {
-                X = 0.5f,
-                Y = 0.5f,
+                X = 0.0f,
+                Y = 0.0f,
                 Z = 3.0f
             };
             _camera = new Camera(camPos, Size.X / (float)Size.Y);
 
-            /*Matrix4 bla = Matrix4.Identity;
-            bla *= Matrix4.CreateScale(2.0f);
-            bla *= Matrix4.CreateTranslation(5.0f, 5.0f, 5.0f);
-            
-
-           
-
-
-            Vector4 yy = new Vector4(5.0f, 5.0f, 5.0f, 1.0f);
-            yy = yy * bla;
-
-            bla.Transpose();
-            Vector4 xx = new Vector4(5.0f, 5.0f, 5.0f, 1.0f);
-            xx = bla * xx;*/
-
-
             // load anatomical models
             Matrix4 modelTransform = Matrix4.Identity;
-
             // load sform or qform
             modelTransform *= Matrix4.CreateScale(-0.355469f, 0.355469f, 0.45f);
             modelTransform *= Matrix4.CreateTranslation(45.5f, -228.585f, -271.88f);
-
             // transforms to world coordinates
             modelTransform.Invert();
-
             // normalize coordinates within 0-1 range
             modelTransform *= Matrix4.CreateScale(1.0f / 512.0f, 1.0f / 512.0f, 1.0f / 363.0f);
-            //modelTransform *= Matrix4.CreateTranslation(1.0f, 0.0f, 0.0f);
-
-            //Vector4 yy = new Vector4(-95.98f, -79.64f, -214.7f, 1.0f);
-            //yy = yy * modelTransform;
 
             Random rand = new Random();
             float objectID = 0.0f;
@@ -154,6 +136,7 @@ namespace LearnOpenTK
             plane_x.BindToShader(_shaderPlane);
             plane_x.transform = Matrix4.CreateTranslation(0.0f, 0.0f, 0.5f);
             plane_x.name = "Plane_X";
+            plane_x.visible = false;
             _planes.Add(plane_x);
 
             var plane_y = Model.Load("Data/plane.obj");
@@ -170,6 +153,39 @@ namespace LearnOpenTK
             plane_z.transform = Matrix4.CreateRotationX((float)Math.PI * 0.5f);
             plane_z.visible = false;
             _planes.Add(plane_z);
+
+            // create widgets
+            float widgetScale = 0.75f;
+
+            var rotation_widget_x = Model.Load("Data/rotation_widget.obj");
+            rotation_widget_x.ConstructVAO();
+            rotation_widget_x.BindToShader(_shaderWidget);
+            rotation_widget_x.color = new Vector3(1.0f, 0.0f, 0.0f);
+            rotation_widget_x.CalculateCenterOfMass();
+            rotation_widget_x.transform = Matrix4.CreateScale(widgetScale);
+            rotation_widget_x.transform *= Matrix4.CreateRotationY((float)Math.PI / 2.0f);
+            rotation_widget_x.transform *= Matrix4.CreateTranslation(0.5f, 0.5f, 0.5f);
+            _widgets.Add(rotation_widget_x);
+
+            var rotation_widget_y = Model.Load("Data/rotation_widget.obj");
+            rotation_widget_y.ConstructVAO();
+            rotation_widget_y.BindToShader(_shaderWidget);
+            rotation_widget_y.color = new Vector3(0.0f, 1.0f, 0.0f);
+            rotation_widget_y.CalculateCenterOfMass();
+            rotation_widget_y.transform = Matrix4.CreateScale(widgetScale);
+            rotation_widget_y.transform *= Matrix4.CreateRotationX((float)Math.PI / 2.0f);
+            rotation_widget_y.transform *= Matrix4.CreateTranslation(0.5f, 0.5f, 0.5f);
+            _widgets.Add(rotation_widget_y);
+
+            var rotation_widget_z = Model.Load("Data/rotation_widget.obj");
+            rotation_widget_z.ConstructVAO();
+            rotation_widget_z.BindToShader(_shaderWidget);
+            //rotation_widget_x.transform = Matrix4.Identity;
+            rotation_widget_z.color = new Vector3(0.0f, 0.0f, 1.0f);
+            rotation_widget_z.CalculateCenterOfMass();
+            rotation_widget_z.transform = Matrix4.CreateScale(widgetScale);
+            rotation_widget_z.transform *= Matrix4.CreateTranslation(0.5f, 0.5f, 0.5f);
+            _widgets.Add(rotation_widget_z);
 
             // stopwatch for animations
             _sw = Stopwatch.StartNew();
@@ -202,17 +218,10 @@ namespace LearnOpenTK
             GL.StencilMask(0x00);
 
             //
-            //  object id map
+            //  calculate transforms
             //
 
-            _shader.Use();
-            
             float time = (float)(_sw.ElapsedMilliseconds) / 1000.0f;
-            _shader.SetInt("renderMode", (int)RenderMode.ObjectID);
-            _shader.SetMatrix4("view", _camera.GetViewMatrix());
-            _shader.SetMatrix4("projection", _camera.GetProjectionMatrix());
-            Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
-
             foreach (Model m in _models)
             {
                 Vector4 centroidTrans = new Vector4(m.centerOfMass);
@@ -221,7 +230,32 @@ namespace LearnOpenTK
                 mm *= Matrix4.CreateScale((float)(1.0 - 0.05 * (0.5 + 0.5 * Math.Sin(time * 0.8))));
                 mm *= Matrix4.CreateTranslation(centroidTrans.X, centroidTrans.Y, centroidTrans.Z);
 
-                _shader.SetMatrix4("model", mm);
+                Matrix4 mm2 = Matrix4.Identity;
+                mm2 *= Matrix4.CreateTranslation(-0.5f, -0.5f, -0.5f);
+                mm2 *= Matrix4.CreateRotationX(-90.0f);
+                mm2 *= Matrix4.CreateRotationY(time);
+                //mm2 *= Matrix4.CreateRotationZ(time);
+                mm2 *= Matrix4.CreateTranslation(0.5f, 0.5f, 0.5f);
+
+                m.frame_transform = mm;
+                m.frame_transform2 = mm2;
+            }
+
+            //
+            //  object id map
+            //
+
+            _shader.Use();
+            
+            _shader.SetInt("renderMode", (int)RenderMode.ObjectID);
+            _shader.SetMatrix4("view", _camera.GetViewMatrix());
+            _shader.SetMatrix4("projection", _camera.GetProjectionMatrix());
+            Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
+
+            foreach (Model m in _models)
+            {
+                _shader.SetMatrix4("model", m.frame_transform);
+                _shader.SetMatrix4("model2", m.frame_transform2);
                 _shader.SetVector3("light.color", m.color);
                 _shader.SetFloat("objectID", m.objectID / 255.0f);
                 m.Draw();
@@ -255,14 +289,8 @@ namespace LearnOpenTK
             _shader.SetInt("renderMode", (int)RenderMode.Regular);
             foreach (Model m in _models)
             {
-                Vector4 centroidTrans = new Vector4(m.centerOfMass);
-                Matrix4 mm = m.transform;
-                mm *= Matrix4.CreateTranslation(-centroidTrans.X, -centroidTrans.Y, -centroidTrans.Z);
-                mm *= Matrix4.CreateScale((float)(1.0-0.05*(0.5 + 0.5*Math.Sin(time*0.8))));
-                // mm *= Matrix4.CreateRotationX(90.0f);
-                mm *= Matrix4.CreateTranslation(centroidTrans.X, centroidTrans.Y, centroidTrans.Z);
-
-                _shader.SetMatrix4("model", mm);
+                _shader.SetMatrix4("model", m.frame_transform);
+                _shader.SetMatrix4("model2", m.frame_transform2);
                 _shader.SetVector3("light.color", m.color);
                 m.Draw();
             }
@@ -297,6 +325,17 @@ namespace LearnOpenTK
             //  coordinate system
             //
 
+            GL.Enable(EnableCap.CullFace);
+
+            _shaderWidget.Use();
+            foreach (Model m in _widgets)
+            {
+                _shaderWidget.SetMatrix4("model", m.transform);
+                _shaderWidget.SetMatrix4("view", _camera.GetViewMatrix());
+                _shaderWidget.SetMatrix4("projection", _camera.GetProjectionMatrix());
+                _shaderWidget.SetVector3("color", m.color);
+                m.Draw();
+            }
 
 
             //
@@ -319,14 +358,9 @@ namespace LearnOpenTK
                 index = Math.Clamp(index, 0, _models.Count - 1);
                 Model m = _models[index];
 
-                Vector4 centroidTrans = new Vector4(m.centerOfMass);
-                Matrix4 mm = m.transform;
-                mm *= Matrix4.CreateTranslation(-centroidTrans.X, -centroidTrans.Y, -centroidTrans.Z);
-                mm *= Matrix4.CreateScale((float)(1.0 - 0.05 * (0.5 + 0.5 * Math.Sin(time * 0.8))));
-                mm *= Matrix4.CreateTranslation(centroidTrans.X, centroidTrans.Y, centroidTrans.Z);
-
                 _shader.SetInt("renderMode", (int)RenderMode.Regular);
-                _shader.SetMatrix4("model", mm);
+                _shader.SetMatrix4("model", m.frame_transform);
+                _shader.SetMatrix4("model2", m.frame_transform2);
                 _shader.SetVector3("light.color", m.color);
                 m.Draw();
 
@@ -338,7 +372,6 @@ namespace LearnOpenTK
                 GL.DepthMask(true);
 
                 _shader.SetInt("renderMode", (int)RenderMode.Outline);
-                _shader.SetMatrix4("model", mm);
                 _shader.SetVector3("outlineColor", new Vector3(1.0f, 0.0f, 0.0f));
                 m.Draw();
 
