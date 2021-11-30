@@ -22,12 +22,17 @@ namespace LearnOpenTK
         private Shader _shader;
         private Shader _shaderPlane;
         private Shader _shaderWidget;
+        private Shader _shaderText;
 
         private Texture3D _tex3D;
+        private Texture _texLoading;
+        private Texture _texInstructions;
 
         private List<Model> _models = new List<Model>();
         private List<Model> _planes = new List<Model>();
         private List<Model> _widgets = new List<Model>();
+
+        private TextImage _instructionsText;
 
         private Camera _camera;
 
@@ -37,15 +42,17 @@ namespace LearnOpenTK
         private float _yRot = 0.0f;
         private float _zRot = 0.0f;
 
+        private bool _bBreathing = true;
+        private bool _bSpinning = true;
+
         private bool _firstMove = true;
         private Vector2 _lastPos;
         private int cval;
         private long _prevElapsedTime;
+        private long _lastMouseMovedTime;
         private float[] _previousFPS = new float[100];
         private int _previousFPSIndex;
         private bool _hasActedOnClick = false;
-
-        
 
         string[] modelFiles =
         {
@@ -81,23 +88,33 @@ namespace LearnOpenTK
         {
             base.OnLoad();
 
-            // window settings
-           // CursorGrabbed = true;
+            _texLoading = Texture.LoadFromFile("Data/loading.png");
+            _shaderText = new Shader("Shaders/vshader_text.glsl", "Shaders/fshader_text.glsl");
+            TextImage textImageLoading = new TextImage();
+            textImageLoading.ConstructVAO();
+            textImageLoading.BindToShader(_shaderText);
+            textImageLoading.transform = Matrix4.CreateScale(0.5f);
 
-            // start with black screen
-            GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+            // start with blank screen
+            GL.ClearColor(1.0f, 1.0f, 1.0f, 1.0f);
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+            _shaderText.Use();
+            _texLoading.Use(TextureUnit.Texture1);
+            _shaderText.SetMatrix4("model", textImageLoading.transform);
+            textImageLoading.Draw();
             SwapBuffers();
+            textImageLoading.Delete();
 
             // load textures
+            this.Title = string.Format("Medical Viewer - LOADING ASSETS - TEXTURE");
             _tex3D = Texture3D.LoadFromFile("Data/CT/ct_image.nii.gz");
-            //_tex3D = Texture3D.LoadFromFile("Data/MR/mr_image_reg.nii.gz");
-            
+            _texInstructions = Texture.LoadFromFile("Data/instructions.png");
+
             // compile shaders
+            this.Title = string.Format("Medical Viewer - LOADING ASSETS - SHADERS");
             _shader = new Shader("Shaders/vshader.glsl", "Shaders/fshader.glsl");
             _shaderPlane = new Shader("Shaders/vshader.glsl", "Shaders/fshader_plane.glsl");
             _shaderWidget = new Shader("Shaders/vshader_widget.glsl", "Shaders/fshader_widget.glsl");
-
 
             // set camera
             Vector3 camPos = new Vector3
@@ -135,6 +152,8 @@ namespace LearnOpenTK
                 m.objectID = ++objectCounter * 10.0f;
                 m.CalculateCenterOfMass();
                 _models.Add(m);
+
+                this.Title = string.Format("Medical Viewer - LOADING ASSETS - MODEL ({0}/{1})", objectCounter, modelFiles.Length);
             }
 
             // create anatomical planes
@@ -143,7 +162,7 @@ namespace LearnOpenTK
             plane_x.BindToShader(_shaderPlane);
             plane_x.transform = Matrix4.CreateTranslation(0.0f, 0.0f, 0.5f);
             plane_x.name = "Plane_X";
-            plane_x.visible = false;
+            plane_x.visible = true;
             _planes.Add(plane_x);
 
             var plane_y = Model.Load("Data/plane.obj");
@@ -202,6 +221,13 @@ namespace LearnOpenTK
             rotation_widget_z.name = "Rotation_Widget_Z";
             _widgets.Add(rotation_widget_z);
 
+            // instructions text
+            _instructionsText = new TextImage();
+            _instructionsText.ConstructVAO();
+            _instructionsText.BindToShader(_shaderText);
+            _instructionsText.transform = Matrix4.CreateScale(0.5f);
+            _instructionsText.transform *= Matrix4.CreateTranslation(-0.73f, 0.82f, 0.0f);
+
             // stopwatch for animations
             _sw = Stopwatch.StartNew();
             _sw.Start();
@@ -241,9 +267,12 @@ namespace LearnOpenTK
             {
                 Vector4 centroidTrans = new Vector4(m.centerOfMass);
                 Matrix4 mm = m.transform;
-                mm *= Matrix4.CreateTranslation(-centroidTrans.X, -centroidTrans.Y, -centroidTrans.Z);
-                mm *= Matrix4.CreateScale((float)(1.0 - 0.05 * (0.5 + 0.5 * Math.Sin(time * 0.8))));
-                mm *= Matrix4.CreateTranslation(centroidTrans.X, centroidTrans.Y, centroidTrans.Z);
+                if(_bBreathing)
+                {
+                    mm *= Matrix4.CreateTranslation(-centroidTrans.X, -centroidTrans.Y, -centroidTrans.Z);
+                    mm *= Matrix4.CreateScale((float)(1.0 - 0.05 * (0.5 + 0.5 * Math.Sin(time * 0.8))));
+                    mm *= Matrix4.CreateTranslation(centroidTrans.X, centroidTrans.Y, centroidTrans.Z);
+                }
 
                 Matrix4 mm2 = Matrix4.Identity;
                 mm2 *= Matrix4.CreateTranslation(-0.5f, -0.5f, -0.5f);
@@ -322,7 +351,7 @@ namespace LearnOpenTK
             }
 
             //
-            //  cube model
+            //  anatomical planes
             //
 
             GL.Disable(EnableCap.CullFace);
@@ -424,8 +453,19 @@ namespace LearnOpenTK
                 GL.Enable(EnableCap.DepthTest);
             }
 
-            SwapBuffers();
+            //
+            //  instructions
+            //
 
+            GL.Disable(EnableCap.DepthTest);
+            GL.Disable(EnableCap.CullFace);
+            _shaderText.Use();
+            _texInstructions.Use(TextureUnit.Texture1);
+            _shaderText.SetMatrix4("model", _instructionsText.transform);
+            _instructionsText.Draw();
+
+            // finish
+            SwapBuffers();
             GL.BindVertexArray(0);
         }
 
@@ -445,7 +485,7 @@ namespace LearnOpenTK
                     objectTitle = m.name;
             }
             if (_prevElapsedTime != 0)
-                this.Title = string.Format("Medical Viewer - frametime: {0} ms ({1} FPS) - {2}", diff, Math.Round(_previousFPS.Average()), objectTitle);
+                this.Title = string.Format("Medical Viewer - frametime: {0} ms ({1} FPS) {2}", diff, Math.Round(_previousFPS.Average()), objectTitle.Length > 0 ? "- " + objectTitle : "");
             _prevElapsedTime = newTime;
 
             if(diff > 0)
@@ -467,6 +507,27 @@ namespace LearnOpenTK
             if (input.IsKeyDown(Keys.Escape))
             {
                 Close();
+            }
+
+            if (input.IsKeyPressed(Keys.W))
+            {
+                _bBreathing = !_bBreathing;
+            }
+            if (input.IsKeyPressed(Keys.Q))
+            {
+                _bSpinning = !_bSpinning;
+            }
+            if (input.IsKeyPressed(Keys.D1))
+            {
+                _planes[0].visible = !_planes[0].visible;
+            }
+            if (input.IsKeyPressed(Keys.D2))
+            {
+                _planes[1].visible = !_planes[1].visible;
+            }
+            if (input.IsKeyPressed(Keys.D3))
+            {
+                _planes[2].visible = !_planes[2].visible;
             }
 
             //
@@ -516,19 +577,36 @@ namespace LearnOpenTK
                 }
             }
 
+            // deselect everything when background clicked
+            if(!_hasActedOnClick && mouse.IsAnyButtonDown)
+            {
+                if (cval == 255)
+                {
+                    foreach (Model m in _models)
+                    {
+                        m.isSelected = false;
+                    }
+                    foreach (Model m in _widgets)
+                    {
+                        m.isSelected = false;
+                    }
+                }
+            }
+
             bool anyWidgetSelected = false;
             foreach (Model m in _widgets)
             {
                 if (m.isSelected)
                     anyWidgetSelected = true;
             }
-            if (!mouse.IsAnyButtonDown || !anyWidgetSelected)
+            if (_bSpinning && (!mouse.IsAnyButtonDown || !anyWidgetSelected))
                 _yRot += diff * 0.001f;
 
             if (_firstMove)
             {
                 _lastPos = new Vector2(mouse.X, mouse.Y);
                 _firstMove = false;
+                _lastMouseMovedTime = newTime;
             }
             else
             {
@@ -557,10 +635,32 @@ namespace LearnOpenTK
                         }
                     }
                 }
+
+                if(deltaX > 0 || deltaY > 0)
+                {
+                    _lastMouseMovedTime = newTime;
+                    foreach (Model m in _widgets)
+                    {
+                        m.visible = true;
+                    }
+                }
             }
 
             if (!mouse.IsAnyButtonDown)
                 _hasActedOnClick = false;
+
+            // hide rotation widgets after some time
+            if (!anyWidgetSelected && newTime - _lastMouseMovedTime > 2000)
+            {
+                foreach (Model m in _widgets)
+                {
+                    m.visible = false;
+                }
+            }
+            else if(anyWidgetSelected)
+            {
+                _lastMouseMovedTime = newTime;
+            }
         }
 
         protected override void OnResize(ResizeEventArgs e)
@@ -586,6 +686,11 @@ namespace LearnOpenTK
             {
                 m.Delete();
             }
+            foreach (Model m in _widgets)
+            {
+                m.Delete();
+            }
+            _instructionsText.Delete();
 
             GL.DeleteProgram(_shader.Handle);
             GL.DeleteProgram(_shaderPlane.Handle);

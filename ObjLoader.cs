@@ -31,8 +31,6 @@ namespace LearnOpenTK
 					string type = words[0];
 					words.RemoveAt(0);
 
-					
-
 					switch (type)
 					{
 						// vertex
