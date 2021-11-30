@@ -53,7 +53,7 @@ namespace LearnOpenTK
             "Data/CT/850.obj"
         };
 
-        string[] modelTitles =
+        string[] _modelTitles =
         {
             "myocardium of the left ventricle",
             "left atrium blood cavity",
@@ -62,7 +62,9 @@ namespace LearnOpenTK
             "right ventricle blood cavity",
             "pulmonary artery",
             "ascending aorta",
-            "rotation",
+            "rotation x",
+            "rotation y",
+            "rotation z"
         };
 
         ///
@@ -157,6 +159,7 @@ namespace LearnOpenTK
             // create widgets
             float widgetScale = 0.75f;
 
+            objectID += 10.0f;
             var rotation_widget_x = Model.Load("Data/rotation_widget.obj");
             rotation_widget_x.ConstructVAO();
             rotation_widget_x.BindToShader(_shaderWidget);
@@ -165,8 +168,10 @@ namespace LearnOpenTK
             rotation_widget_x.transform = Matrix4.CreateScale(widgetScale);
             rotation_widget_x.transform *= Matrix4.CreateRotationY((float)Math.PI / 2.0f);
             rotation_widget_x.transform *= Matrix4.CreateTranslation(0.5f, 0.5f, 0.5f);
+            rotation_widget_x.objectID = objectID;
             _widgets.Add(rotation_widget_x);
 
+            objectID += 10.0f;
             var rotation_widget_y = Model.Load("Data/rotation_widget.obj");
             rotation_widget_y.ConstructVAO();
             rotation_widget_y.BindToShader(_shaderWidget);
@@ -175,8 +180,10 @@ namespace LearnOpenTK
             rotation_widget_y.transform = Matrix4.CreateScale(widgetScale);
             rotation_widget_y.transform *= Matrix4.CreateRotationX((float)Math.PI / 2.0f);
             rotation_widget_y.transform *= Matrix4.CreateTranslation(0.5f, 0.5f, 0.5f);
+            rotation_widget_y.objectID = objectID;
             _widgets.Add(rotation_widget_y);
 
+            objectID += 10.0f;
             var rotation_widget_z = Model.Load("Data/rotation_widget.obj");
             rotation_widget_z.ConstructVAO();
             rotation_widget_z.BindToShader(_shaderWidget);
@@ -185,6 +192,7 @@ namespace LearnOpenTK
             rotation_widget_z.CalculateCenterOfMass();
             rotation_widget_z.transform = Matrix4.CreateScale(widgetScale);
             rotation_widget_z.transform *= Matrix4.CreateTranslation(0.5f, 0.5f, 0.5f);
+            rotation_widget_z.objectID = objectID;
             _widgets.Add(rotation_widget_z);
 
             // stopwatch for animations
@@ -207,7 +215,6 @@ namespace LearnOpenTK
             GL.CullFace(CullFaceMode.Back);
 
             GL.Enable(EnableCap.Multisample);
-
             GL.Enable(EnableCap.StencilTest);
 
             GL.StencilOp(StencilOp.Keep, StencilOp.Keep, StencilOp.Replace);
@@ -258,6 +265,17 @@ namespace LearnOpenTK
                 _shader.SetMatrix4("model2", m.frame_transform2);
                 _shader.SetVector3("light.color", m.color);
                 _shader.SetFloat("objectID", m.objectID / 255.0f);
+                m.Draw();
+            }
+
+            _shaderWidget.Use();
+            _shaderWidget.SetInt("renderMode", (int)RenderMode.ObjectID);
+            foreach (Model m in _widgets)
+            {
+                _shaderWidget.SetMatrix4("model", m.transform);
+                _shaderWidget.SetMatrix4("view", _camera.GetViewMatrix());
+                _shaderWidget.SetMatrix4("projection", _camera.GetProjectionMatrix());
+                _shaderWidget.SetFloat("objectID", m.objectID / 255.0f);
                 m.Draw();
             }
 
@@ -330,10 +348,14 @@ namespace LearnOpenTK
             _shaderWidget.Use();
             foreach (Model m in _widgets)
             {
+                _shaderWidget.SetInt("renderMode", (int)RenderMode.Regular);
                 _shaderWidget.SetMatrix4("model", m.transform);
                 _shaderWidget.SetMatrix4("view", _camera.GetViewMatrix());
                 _shaderWidget.SetMatrix4("projection", _camera.GetProjectionMatrix());
-                _shaderWidget.SetVector3("color", m.color);
+                if(m.isSelected)
+                    _shaderWidget.SetVector3("color", new Vector3(1.0f, 1.0f, 0.0f));
+                else
+                    _shaderWidget.SetVector3("color", m.color);
                 m.Draw();
             }
 
@@ -342,7 +364,12 @@ namespace LearnOpenTK
             //  selected object outline
             //
 
+            float index = cval;
+            foreach (Model m in _models)
             {
+                if (m.objectID != index)
+                    continue;
+
                 _shader.Use();
 
                 // disable writing to color space
@@ -353,10 +380,6 @@ namespace LearnOpenTK
                 GL.StencilFunc(StencilFunction.Always, 1, 0xFF);
                 GL.StencilMask(0xFF); // enable writing to stencil
                 GL.Disable(EnableCap.DepthTest);
-
-                int index = cval / 10 - 1;
-                index = Math.Clamp(index, 0, _models.Count - 1);
-                Model m = _models[index];
 
                 _shader.SetInt("renderMode", (int)RenderMode.Regular);
                 _shader.SetMatrix4("model", m.frame_transform);
@@ -380,6 +403,11 @@ namespace LearnOpenTK
                 GL.Enable(EnableCap.DepthTest);
             }
 
+            foreach (Model m in _widgets)
+            {
+                m.isSelected = (int)m.objectID == index;
+            }
+
             SwapBuffers();
 
             GL.BindVertexArray(0);
@@ -390,12 +418,12 @@ namespace LearnOpenTK
             base.OnUpdateFrame(e);
 
             int index = cval / 10 - 1;
-            index = Math.Clamp(index, 0, _models.Count - 1);
+            index = Math.Clamp(index, 0, _modelTitles.Length - 1);
 
             long newTime = _sw.ElapsedMilliseconds;
             long diff = newTime - _prevElapsedTime;
             if (_prevElapsedTime != 0)
-                this.Title = string.Format("Medical Viewer - frametime: {0} ms ({1} FPS) - {2}", diff, Math.Round(_previousFPS.Average()), modelTitles[index]);
+                this.Title = string.Format("Medical Viewer - frametime: {0} ms ({1} FPS) - {2}", diff, Math.Round(_previousFPS.Average()), _modelTitles[index]);
             _prevElapsedTime = newTime;
             if(diff > 0)
             {

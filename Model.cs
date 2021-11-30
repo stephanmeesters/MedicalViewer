@@ -27,6 +27,8 @@ namespace LearnOpenTK
         public Matrix4 frame_transform;
         public Matrix4 frame_transform2;
 
+        public bool isSelected = false;
+
         public Model(Mesh mesh)
         {
             this.mesh = mesh;
