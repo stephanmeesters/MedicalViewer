@@ -160,7 +160,7 @@ namespace LearnOpenTK
             var plane_x = Model.Load("Data/plane.obj");
             plane_x.ConstructVAO();
             plane_x.BindToShader(_shaderPlane);
-            plane_x.transform = Matrix4.CreateTranslation(0.0f, 0.0f, 0.5f);
+            plane_x.transform = Matrix4.CreateTranslation(0.0f, 0.0f, 0.2f);
             plane_x.name = "Plane_X";
             plane_x.visible = true;
             _planes.Add(plane_x);
@@ -169,15 +169,16 @@ namespace LearnOpenTK
             plane_y.ConstructVAO();
             plane_y.BindToShader(_shaderPlane);
             plane_y.transform = Matrix4.CreateRotationY(-(float)Math.PI*0.5f);
-            plane_x.name = "Plane_Y";
+            //plane_y.transform *= Matrix4.CreateTranslation(0.5f, 0.0f, 0.0f);
+            plane_y.name = "Plane_Y";
             plane_y.visible = false;
-            //plane_y.transform *= Matrix4.CreateTranslation(0.0f, 0.0f, 0.5f);
             _planes.Add(plane_y);
 
             var plane_z = Model.Load("Data/plane.obj");
             plane_z.ConstructVAO();
             plane_z.BindToShader(_shaderPlane);
             plane_z.transform = Matrix4.CreateRotationX((float)Math.PI * 0.5f);
+            //plane_z.transform *= Matrix4.CreateTranslation(0.0f, 0.5f, 0.0f);
             plane_z.name = "Plane_Z";
             plane_z.visible = false;
             _planes.Add(plane_z);
@@ -358,7 +359,8 @@ namespace LearnOpenTK
 
             _shaderPlane.Use();
             Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
-            
+
+            _shaderPlane.SetInt("renderMode", (int)RenderMode.Regular);
             _shaderPlane.SetMatrix4("view", _camera.GetViewMatrix());
             _shaderPlane.SetMatrix4("projection", _camera.GetProjectionMatrix());
             norm = 45;
@@ -368,11 +370,29 @@ namespace LearnOpenTK
 
             foreach (Model m in _planes)
             {
+                Matrix4 mm = m.transform;
                 if(m.name == "Plane_X")
                 {
-                    m.transform = Matrix4.CreateTranslation(0.0f, 0.0f, (float)(0.5 + 0.5 * Math.Sin(time * 0.5)));
+                    mm *= Matrix4.CreateTranslation(0.0f, 0.0f, (float)(0.5 + 0.5 * Math.Sin(time * 0.5)));
                 }
-                _shaderPlane.SetMatrix4("model", m.transform);
+                else if (m.name == "Plane_Y")
+                {
+                    mm *= Matrix4.CreateTranslation((float)(0.5 + 0.5 * Math.Sin(time * 0.5)), 0.0f, 0.0f);
+                }
+                else if (m.name == "Plane_Z")
+                {
+                    mm *= Matrix4.CreateTranslation(0.0f, (float)(0.5 + 0.5 * Math.Sin(time * 0.5)), 0.0f);
+                }
+
+                Matrix4 mm2 = Matrix4.Identity;
+                mm2 *= Matrix4.CreateTranslation(-0.5f, -0.5f, -0.5f);
+                mm2 *= Matrix4.CreateRotationX(_xRot);
+                mm2 *= Matrix4.CreateRotationY(_yRot);
+                mm2 *= Matrix4.CreateRotationZ(_zRot);
+                mm2 *= Matrix4.CreateTranslation(0.5f, 0.5f, 0.5f);
+
+                _shaderPlane.SetMatrix4("model", mm);
+                _shaderPlane.SetMatrix4("model2", mm2);
                 m.Draw();
             }
 
