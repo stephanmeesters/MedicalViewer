@@ -12,7 +12,7 @@ void main()
 {
     if(renderMode == 1)
     {
-        gl_Position = vec4(aPos, 1.0) * model * view * projection;
+        gl_Position = vec4(aPos + aNormal * 0.003, 1.0) * model * view * projection;
     }
     else
     {

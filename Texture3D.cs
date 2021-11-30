@@ -16,6 +16,7 @@ namespace LearnOpenTK
         public readonly double ImageLowestIntensity;
 
         public readonly Matrix4 Transformation;
+        public readonly Vector3 Dimensions;
 
         public static Texture3D LoadFromFile(string path)
         {
@@ -106,15 +107,16 @@ namespace LearnOpenTK
 
             GL.GenerateMipmap(GenerateMipmapTarget.Texture3D);
 
-            return new Texture3D(handle, minIntensity, maxIntensity, mat);
+            return new Texture3D(handle, minIntensity, maxIntensity, mat, new Vector3(xs, ys, zs));
         }
 
-        public Texture3D(int glHandle, double minIntensity, double maxIntensity, Matrix4 transformation)
+        public Texture3D(int glHandle, double minIntensity, double maxIntensity, Matrix4 transformation, Vector3 dimensions)
         {
             Handle = glHandle;
             ImageLowestIntensity = minIntensity;
             ImageHighestIntensity = maxIntensity;
             Transformation = transformation;
+            Dimensions = dimensions;
         }
 
         // Activate texture

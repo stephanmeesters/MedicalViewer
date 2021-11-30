@@ -33,6 +33,10 @@ namespace LearnOpenTK
 
         Stopwatch _sw;
 
+        private float _xRot = 0.0f;
+        private float _yRot = 0.0f;
+        private float _zRot = 0.0f;
+
         private bool _firstMove = true;
         private Vector2 _lastPos;
         private int cval;
@@ -100,11 +104,13 @@ namespace LearnOpenTK
             // set camera
             Vector3 camPos = new Vector3
             {
-                X = 0.0f,
-                Y = 0.0f,
-                Z = 3.0f
+                X = 1.3f,
+                Y = 0.75f,
+                Z = 1.3f
             };
             _camera = new Camera(camPos, Size.X / (float)Size.Y);
+            _camera.Yaw = -136f;
+            _camera.Pitch = -6.0f;
 
             // load anatomical models
             // load sform or qform
@@ -113,7 +119,10 @@ namespace LearnOpenTK
             // transform to world coordinates
             modelTransform.Invert();
             // normalize coordinates within 0-1 range
-            modelTransform *= Matrix4.CreateScale(1.0f / 512.0f, 1.0f / 512.0f, 1.0f / 363.0f);
+            modelTransform *= Matrix4.CreateScale(
+                                1.0f / _tex3D.Dimensions.X,
+                                1.0f / _tex3D.Dimensions.Y,
+                                1.0f / _tex3D.Dimensions.Z);
 
             Random rand = new Random();
             float objectID = 0.0f;
@@ -144,6 +153,7 @@ namespace LearnOpenTK
             plane_y.ConstructVAO();
             plane_y.BindToShader(_shaderPlane);
             plane_y.transform = Matrix4.CreateRotationY(-(float)Math.PI*0.5f);
+            plane_x.name = "Plane_Y";
             plane_y.visible = false;
             //plane_y.transform *= Matrix4.CreateTranslation(0.0f, 0.0f, 0.5f);
             _planes.Add(plane_y);
@@ -152,6 +162,7 @@ namespace LearnOpenTK
             plane_z.ConstructVAO();
             plane_z.BindToShader(_shaderPlane);
             plane_z.transform = Matrix4.CreateRotationX((float)Math.PI * 0.5f);
+            plane_z.name = "Plane_Z";
             plane_z.visible = false;
             _planes.Add(plane_z);
 
@@ -168,6 +179,7 @@ namespace LearnOpenTK
             rotation_widget_x.transform *= Matrix4.CreateRotationY((float)Math.PI / 2.0f);
             rotation_widget_x.transform *= Matrix4.CreateTranslation(0.5f, 0.5f, 0.5f);
             rotation_widget_x.objectID = objectID;
+            rotation_widget_x.name = "Rotation_Widget_X";
             _widgets.Add(rotation_widget_x);
 
             objectID += 10.0f;
@@ -180,6 +192,7 @@ namespace LearnOpenTK
             rotation_widget_y.transform *= Matrix4.CreateRotationX((float)Math.PI / 2.0f);
             rotation_widget_y.transform *= Matrix4.CreateTranslation(0.5f, 0.5f, 0.5f);
             rotation_widget_y.objectID = objectID;
+            rotation_widget_y.name = "Rotation_Widget_Y";
             _widgets.Add(rotation_widget_y);
 
             objectID += 10.0f;
@@ -192,6 +205,7 @@ namespace LearnOpenTK
             rotation_widget_z.transform = Matrix4.CreateScale(widgetScale);
             rotation_widget_z.transform *= Matrix4.CreateTranslation(0.5f, 0.5f, 0.5f);
             rotation_widget_z.objectID = objectID;
+            rotation_widget_z.name = "Rotation_Widget_Z";
             _widgets.Add(rotation_widget_z);
 
             // stopwatch for animations
@@ -228,6 +242,10 @@ namespace LearnOpenTK
             //
 
             float time = (float)(_sw.ElapsedMilliseconds) / 1000.0f;
+
+            _xRot = -(float)Math.PI / 2.0f;
+            _yRot = time;
+
             foreach (Model m in _models)
             {
                 Vector4 centroidTrans = new Vector4(m.centerOfMass);
@@ -238,8 +256,8 @@ namespace LearnOpenTK
 
                 Matrix4 mm2 = Matrix4.Identity;
                 mm2 *= Matrix4.CreateTranslation(-0.5f, -0.5f, -0.5f);
-                mm2 *= Matrix4.CreateRotationX(-90.0f);
-                mm2 *= Matrix4.CreateRotationY(time);
+                mm2 *= Matrix4.CreateRotationX(_xRot);
+                mm2 *= Matrix4.CreateRotationY(_yRot);
                 //mm2 *= Matrix4.CreateRotationZ(time);
                 mm2 *= Matrix4.CreateTranslation(0.5f, 0.5f, 0.5f);
 
@@ -348,7 +366,18 @@ namespace LearnOpenTK
             foreach (Model m in _widgets)
             {
                 _shaderWidget.SetInt("renderMode", (int)RenderMode.Regular);
-                _shaderWidget.SetMatrix4("model", m.transform);
+
+                Matrix4 mm = m.transform;
+                mm *= Matrix4.CreateTranslation(-0.5f, -0.5f, -0.5f);
+                if(m.name == "Rotation_Widget_X")
+                    mm *= Matrix4.CreateRotationX(_xRot);
+                if (m.name == "Rotation_Widget_Y")
+                    mm *= Matrix4.CreateRotationY(_yRot);
+                if (m.name == "Rotation_Widget_Z")
+                    mm *= Matrix4.CreateRotationZ(_zRot);
+                mm *= Matrix4.CreateTranslation(0.5f, 0.5f, 0.5f);
+
+                _shaderWidget.SetMatrix4("model", mm);
                 _shaderWidget.SetMatrix4("view", _camera.GetViewMatrix());
                 _shaderWidget.SetMatrix4("projection", _camera.GetProjectionMatrix());
                 if(m.isSelected)
@@ -487,6 +516,7 @@ namespace LearnOpenTK
 
                 _camera.Yaw += deltaX * sensitivity;
                 _camera.Pitch -= deltaY * sensitivity;
+                
             }
         }
 
