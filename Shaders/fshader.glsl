@@ -28,17 +28,17 @@ void main()
     if(renderMode == 1)
     {
         // ambient
-        vec3 colorc = vec3(texture(sampler, vec3(1-FragPos.x, FragPos.y, FragPos.z)).r);
+        vec3 colorc = vec3(texture(sampler, vec3(FragPos.x, FragPos.y, FragPos.z)).r);
         vec3 color =  (colorc * norm)*(1.0 - light.colorStrength) + light.color*light.colorStrength;
         vec3 ambient = light.ambient * color;
 
         // diffuse 
         vec3 normv = normalize(Normal);
-        //normv += 10.0*vec3(texture(sampler, vec3(1-FragPos.x, FragPos.y, FragPos.z) + normv*0.1));
+        //normv += 10.0*vec3(texture(sampler, vec3(FragPos.x, FragPos.y, FragPos.z) + normv*0.1));
         //normv = normalize(normv);
-        float colorc1 = texture(sampler, vec3(1-FragPos.x-normv.x*0.02, FragPos.y, FragPos.z)).r;
-        float colorc2 = texture(sampler, vec3(1-FragPos.x, FragPos.y+normv.y*0.02, FragPos.z)).r;
-        float colorc3 = texture(sampler, vec3(1-FragPos.x, FragPos.y, FragPos.z+normv.z*0.02)).r;
+        float colorc1 = texture(sampler, vec3(FragPos.x-normv.x*0.02, FragPos.y, FragPos.z)).r;
+        float colorc2 = texture(sampler, vec3(FragPos.x, FragPos.y+normv.y*0.02, FragPos.z)).r;
+        float colorc3 = texture(sampler, vec3(FragPos.x, FragPos.y, FragPos.z+normv.z*0.02)).r;
         normv = normv + normalize(colorc - vec3(colorc1, colorc2, colorc3))*0.2;
         normv = normalize(normv);
 

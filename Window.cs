@@ -99,12 +99,38 @@ namespace LearnOpenTK
             };
             _camera = new Camera(camPos, Size.X / (float)Size.Y);
 
+            /*Matrix4 bla = Matrix4.Identity;
+            bla *= Matrix4.CreateScale(2.0f);
+            bla *= Matrix4.CreateTranslation(5.0f, 5.0f, 5.0f);
+            
+
+           
+
+
+            Vector4 yy = new Vector4(5.0f, 5.0f, 5.0f, 1.0f);
+            yy = yy * bla;
+
+            bla.Transpose();
+            Vector4 xx = new Vector4(5.0f, 5.0f, 5.0f, 1.0f);
+            xx = bla * xx;*/
+
+
             // load anatomical models
             Matrix4 modelTransform = Matrix4.Identity;
-            modelTransform *= Matrix4.CreateTranslation(-45.5f, 228.585f, 271.88f);
-            modelTransform *= Matrix4.CreateScale(1.0f / 0.355469f, 1.0f / 0.355469f, 1.0f / 0.45f);
+
+            // load sform or qform
+            modelTransform *= Matrix4.CreateScale(-0.355469f, 0.355469f, 0.45f);
+            modelTransform *= Matrix4.CreateTranslation(45.5f, -228.585f, -271.88f);
+
+            // transforms to world coordinates
+            modelTransform.Invert();
+
+            // normalize coordinates within 0-1 range
             modelTransform *= Matrix4.CreateScale(1.0f / 512.0f, 1.0f / 512.0f, 1.0f / 363.0f);
-            modelTransform *= Matrix4.CreateTranslation(1.0f, 0.0f, 0.0f);
+            //modelTransform *= Matrix4.CreateTranslation(1.0f, 0.0f, 0.0f);
+
+            //Vector4 yy = new Vector4(-95.98f, -79.64f, -214.7f, 1.0f);
+            //yy = yy * modelTransform;
 
             Random rand = new Random();
             float objectID = 0.0f;
@@ -162,7 +188,7 @@ namespace LearnOpenTK
 
             GL.ClearColor(1.0f, 1.0f, 1.0f, 1.0f);
             GL.Enable(EnableCap.CullFace);
-            GL.CullFace(CullFaceMode.Front);
+            GL.CullFace(CullFaceMode.Back);
 
             GL.Enable(EnableCap.Multisample);
 
@@ -192,7 +218,7 @@ namespace LearnOpenTK
                 Vector4 centroidTrans = new Vector4(m.centerOfMass);
                 Matrix4 mm = m.transform;
                 mm *= Matrix4.CreateTranslation(-centroidTrans.X, -centroidTrans.Y, -centroidTrans.Z);
-                mm *= Matrix4.CreateScale((float)(1.0 - 0.02 * (0.5 + 0.5 * Math.Sin(time * 0.8))));
+                mm *= Matrix4.CreateScale((float)(1.0 - 0.05 * (0.5 + 0.5 * Math.Sin(time * 0.8))));
                 mm *= Matrix4.CreateTranslation(centroidTrans.X, centroidTrans.Y, centroidTrans.Z);
 
                 _shader.SetMatrix4("model", mm);
@@ -232,7 +258,8 @@ namespace LearnOpenTK
                 Vector4 centroidTrans = new Vector4(m.centerOfMass);
                 Matrix4 mm = m.transform;
                 mm *= Matrix4.CreateTranslation(-centroidTrans.X, -centroidTrans.Y, -centroidTrans.Z);
-                mm *= Matrix4.CreateScale((float)(1.0-0.02*(0.5 + 0.5*Math.Sin(time*0.8))));
+                mm *= Matrix4.CreateScale((float)(1.0-0.05*(0.5 + 0.5*Math.Sin(time*0.8))));
+                // mm *= Matrix4.CreateRotationX(90.0f);
                 mm *= Matrix4.CreateTranslation(centroidTrans.X, centroidTrans.Y, centroidTrans.Z);
 
                 _shader.SetMatrix4("model", mm);
@@ -270,11 +297,15 @@ namespace LearnOpenTK
             //  coordinate system
             //
 
+
+
             //
             //  selected object outline
             //
 
             {
+                _shader.Use();
+
                 // disable writing to color space
                 GL.ColorMask(false, false, false, false);
                 GL.DepthMask(false);
@@ -291,7 +322,7 @@ namespace LearnOpenTK
                 Vector4 centroidTrans = new Vector4(m.centerOfMass);
                 Matrix4 mm = m.transform;
                 mm *= Matrix4.CreateTranslation(-centroidTrans.X, -centroidTrans.Y, -centroidTrans.Z);
-                mm *= Matrix4.CreateScale((float)(1.0 - 0.02 * (0.5 + 0.5 * Math.Sin(time * 0.8))));
+                mm *= Matrix4.CreateScale((float)(1.0 - 0.05 * (0.5 + 0.5 * Math.Sin(time * 0.8))));
                 mm *= Matrix4.CreateTranslation(centroidTrans.X, centroidTrans.Y, centroidTrans.Z);
 
                 _shader.SetInt("renderMode", (int)RenderMode.Regular);

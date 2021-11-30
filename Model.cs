@@ -100,15 +100,19 @@ namespace LearnOpenTK
 
         public void CalculateCenterOfMass()
         {
-            Vector3 centerOfMass = new Vector3();
+            /*Vector3 centerOfMass = new Vector3();
             for (int i = 0; i < this.mesh.numberOfVertices; i++)
             {
-                Vector4 m = new Vector4(this.mesh.vertices[i]);
+                Vector4 m = new Vector4(this.mesh.vertices[i], 1.0f);
                 m *= this.transform;
                 centerOfMass += new Vector3(m.X, m.Y, m.Z);
             }
             centerOfMass /= this.mesh.numberOfVertices;
-            this.centerOfMass = centerOfMass;
+            this.centerOfMass = centerOfMass;*/
+
+            Vector4 m = new Vector4(this.mesh.centerOfMass, 1.0f);
+            m *= this.transform;
+            this.centerOfMass = new Vector3(m.X, m.Y, m.Z);
         }
     }
 }
