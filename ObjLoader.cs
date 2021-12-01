@@ -2,7 +2,7 @@
 using System.IO;
 using OpenTK.Mathematics;
 
-namespace LearnOpenTK
+namespace MedViewer
 {
 	public static class ObjLoader
 	{

@@ -34,8 +34,6 @@ void main()
 
         // diffuse 
         vec3 normv = normalize(Normal);
-        //normv += 10.0*vec3(texture(sampler, vec3(FragPos.x, FragPos.y, FragPos.z) + normv*0.1));
-        //normv = normalize(normv);
         float colorc1 = texture(sampler, vec3(FragPos.x-normv.x*0.02, FragPos.y, FragPos.z)).r;
         float colorc2 = texture(sampler, vec3(FragPos.x, FragPos.y+normv.y*0.02, FragPos.z)).r;
         float colorc3 = texture(sampler, vec3(FragPos.x, FragPos.y, FragPos.z+normv.z*0.02)).r;

@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using OpenTK.Mathematics;
 
-namespace LearnOpenTK
+namespace MedViewer
 {
     class TextImage
     {

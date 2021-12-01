@@ -8,7 +8,7 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 
-namespace LearnOpenTK
+namespace MedViewer
 {
     public class Window : GameWindow
     {
@@ -41,6 +41,9 @@ namespace LearnOpenTK
         private float _xRot = -(float)Math.PI / 2.0f;
         private float _yRot = 0.0f;
         private float _zRot = 0.0f;
+        private float _xPlaneTrans = 0.2f;
+        private float _yPlaneTrans = 0.0f;
+        private float _zPlaneTrans = 0.0f;
 
         private bool _bBreathing = true;
         private bool _bSpinning = true;
@@ -54,7 +57,7 @@ namespace LearnOpenTK
         private int _previousFPSIndex;
         private bool _hasActedOnClick = false;
 
-        string[] modelFiles =
+        private string[] modelFiles =
         {
             "Data/CT/205.obj",
             "Data/CT/420.obj",
@@ -65,7 +68,7 @@ namespace LearnOpenTK
             "Data/CT/850.obj"
         };
 
-        string[] _modelTitles =
+        private string[] _modelTitles =
         {
             "myocardium of the left ventricle",
             "left atrium blood cavity",
@@ -75,6 +78,8 @@ namespace LearnOpenTK
             "pulmonary artery",
             "ascending aorta"
         };
+
+        private float _intensityCorrection = 45.0f;
 
         ///
 
@@ -113,7 +118,7 @@ namespace LearnOpenTK
             // compile shaders
             this.Title = string.Format("Medical Viewer - LOADING ASSETS - SHADERS");
             _shader = new Shader("Shaders/vshader.glsl", "Shaders/fshader.glsl");
-            _shaderPlane = new Shader("Shaders/vshader.glsl", "Shaders/fshader_plane.glsl");
+            _shaderPlane = new Shader("Shaders/vshader_plane.glsl", "Shaders/fshader_plane.glsl");
             _shaderWidget = new Shader("Shaders/vshader_widget.glsl", "Shaders/fshader_widget.glsl");
 
             // set camera
@@ -160,27 +165,27 @@ namespace LearnOpenTK
             var plane_x = Model.Load("Data/plane.obj");
             plane_x.ConstructVAO();
             plane_x.BindToShader(_shaderPlane);
-            plane_x.transform = Matrix4.CreateTranslation(0.0f, 0.0f, 0.2f);
             plane_x.name = "Plane_X";
             plane_x.visible = true;
+            plane_x.objectID = ++objectCounter * 10.0f;
             _planes.Add(plane_x);
 
             var plane_y = Model.Load("Data/plane.obj");
             plane_y.ConstructVAO();
             plane_y.BindToShader(_shaderPlane);
             plane_y.transform = Matrix4.CreateRotationY(-(float)Math.PI*0.5f);
-            //plane_y.transform *= Matrix4.CreateTranslation(0.5f, 0.0f, 0.0f);
             plane_y.name = "Plane_Y";
             plane_y.visible = false;
+            plane_y.objectID = ++objectCounter * 10.0f;
             _planes.Add(plane_y);
 
             var plane_z = Model.Load("Data/plane.obj");
             plane_z.ConstructVAO();
             plane_z.BindToShader(_shaderPlane);
             plane_z.transform = Matrix4.CreateRotationX((float)Math.PI * 0.5f);
-            //plane_z.transform *= Matrix4.CreateTranslation(0.0f, 0.5f, 0.0f);
             plane_z.name = "Plane_Z";
             plane_z.visible = false;
+            plane_z.objectID = ++objectCounter * 10.0f;
             _planes.Add(plane_z);
 
             // create widgets
@@ -213,7 +218,6 @@ namespace LearnOpenTK
             var rotation_widget_z = Model.Load("Data/rotation_widget.obj");
             rotation_widget_z.ConstructVAO();
             rotation_widget_z.BindToShader(_shaderWidget);
-            //rotation_widget_x.transform = Matrix4.Identity;
             rotation_widget_z.color = new Vector3(0.0f, 0.0f, 1.0f);
             rotation_widget_z.CalculateCenterOfMass();
             rotation_widget_z.transform = Matrix4.CreateScale(widgetScale);
@@ -286,33 +290,79 @@ namespace LearnOpenTK
                 m.frame_transform2 = mm2;
             }
 
+            foreach (Model m in _planes)
+            {
+                Matrix4 mm = m.transform;
+                if (m.name == "Plane_X")
+                    mm *= Matrix4.CreateTranslation(0.0f, 0.0f, _xPlaneTrans);
+                else if (m.name == "Plane_Y")
+                    mm *= Matrix4.CreateTranslation(_yPlaneTrans, 0.0f, 0.0f);
+                else if (m.name == "Plane_Z")
+                    mm *= Matrix4.CreateTranslation(0.0f, _zPlaneTrans, 0.0f);
+
+                Matrix4 mm2 = Matrix4.Identity;
+                mm2 *= Matrix4.CreateTranslation(-0.5f, -0.5f, -0.5f);
+                mm2 *= Matrix4.CreateRotationX(_xRot);
+                mm2 *= Matrix4.CreateRotationY(_yRot);
+                mm2 *= Matrix4.CreateRotationZ(_zRot);
+                mm2 *= Matrix4.CreateTranslation(0.5f, 0.5f, 0.5f);
+
+                m.frame_transform = mm;
+                m.frame_transform2 = mm2;
+            }
+
+            foreach (Model m in _widgets)
+            {
+                Matrix4 mm = m.transform;
+                mm *= Matrix4.CreateTranslation(-0.5f, -0.5f, -0.5f);
+                if (m.name == "Rotation_Widget_X")
+                    mm *= Matrix4.CreateRotationX(_xRot);
+                else if (m.name == "Rotation_Widget_Y")
+                    mm *= Matrix4.CreateRotationY(_yRot);
+                else if (m.name == "Rotation_Widget_Z")
+                    mm *= Matrix4.CreateRotationZ(_zRot);
+                mm *= Matrix4.CreateTranslation(0.5f, 0.5f, 0.5f);
+
+                m.frame_transform = mm;
+            }
+
             //
             //  object id map
             //
 
             _shader.Use();
-            
             _shader.SetInt("renderMode", (int)RenderMode.ObjectID);
             _shader.SetMatrix4("view", _camera.GetViewMatrix());
             _shader.SetMatrix4("projection", _camera.GetProjectionMatrix());
-            Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
-
             foreach (Model m in _models)
             {
                 _shader.SetMatrix4("model", m.frame_transform);
                 _shader.SetMatrix4("model2", m.frame_transform2);
-                _shader.SetVector3("light.color", m.color);
                 _shader.SetFloat("objectID", m.objectID / 255.0f);
                 m.Draw();
             }
 
+            _shaderPlane.Use();
+            _shaderPlane.SetInt("renderMode", (int)RenderMode.ObjectID);
+            _shaderPlane.SetMatrix4("view", _camera.GetViewMatrix());
+            _shaderPlane.SetMatrix4("projection", _camera.GetProjectionMatrix());
+            GL.Disable(EnableCap.CullFace);
+            foreach (Model m in _planes)
+            {
+                _shaderPlane.SetMatrix4("model", m.frame_transform);
+                _shaderPlane.SetMatrix4("model2", m.frame_transform2);
+                _shaderPlane.SetFloat("objectID", m.objectID / 255.0f);
+                m.Draw();
+            }
+            GL.Enable(EnableCap.CullFace);
+
             _shaderWidget.Use();
             _shaderWidget.SetInt("renderMode", (int)RenderMode.ObjectID);
+            _shaderWidget.SetMatrix4("view", _camera.GetViewMatrix());
+            _shaderWidget.SetMatrix4("projection", _camera.GetProjectionMatrix());
             foreach (Model m in _widgets)
             {
                 _shaderWidget.SetMatrix4("model", m.transform);
-                _shaderWidget.SetMatrix4("view", _camera.GetViewMatrix());
-                _shaderWidget.SetMatrix4("projection", _camera.GetProjectionMatrix());
                 _shaderWidget.SetFloat("objectID", m.objectID / 255.0f);
                 m.Draw();
             }
@@ -322,6 +372,21 @@ namespace LearnOpenTK
             cval = (int)Pixel;
 
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit );
+
+            //
+            //  instructions
+            //
+
+            GL.Disable(EnableCap.DepthTest);
+            GL.Disable(EnableCap.CullFace);
+
+            _shaderText.Use();
+            _texInstructions.Use(TextureUnit.Texture1);
+            _shaderText.SetMatrix4("model", _instructionsText.transform);
+            _instructionsText.Draw();
+
+            GL.Enable(EnableCap.DepthTest);
+            GL.Enable(EnableCap.CullFace);
 
             //
             //  anatomical models
@@ -335,11 +400,7 @@ namespace LearnOpenTK
             _shader.SetVector3("light.diffuse", new Vector3(0.8f));
             _shader.SetVector3("light.specular", new Vector3(1.0f));
             _shader.SetFloat("light.colorStrength", 0.0f);
-
-            double norm = 65;// 1.0 / (_tex3D.ImageHighestIntensity - _tex3D.ImageLowestIntensity);
-                             //_shader.SetFloat("minIntensity", (float)_tex3D.ImageLowestIntensity);
-                             // _shader.SetFloat("maxIntensity", (float)_tex3D.ImageHighestIntensity);
-            _shader.SetFloat("norm", (float)norm);
+            _shader.SetFloat("norm", _intensityCorrection);
             Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
 
             _shader.SetInt("renderMode", (int)RenderMode.Regular);
@@ -355,71 +416,31 @@ namespace LearnOpenTK
             //  anatomical planes
             //
 
-            GL.Disable(EnableCap.CullFace);
-
             _shaderPlane.Use();
-            Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
-
             _shaderPlane.SetInt("renderMode", (int)RenderMode.Regular);
-            _shaderPlane.SetMatrix4("view", _camera.GetViewMatrix());
-            _shaderPlane.SetMatrix4("projection", _camera.GetProjectionMatrix());
-            norm = 45;
-            _shaderPlane.SetFloat("norm", (float)norm);
-            _shaderPlane.SetVector3("viewPos", _camera.Position);
-            Debug.Assert(GL.GetError() == OpenTK.Graphics.OpenGL4.ErrorCode.NoError);
+            _shaderPlane.SetFloat("norm", _intensityCorrection);
 
+            GL.Disable(EnableCap.CullFace);
             foreach (Model m in _planes)
             {
-                Matrix4 mm = m.transform;
-                if(m.name == "Plane_X")
-                {
-                    mm *= Matrix4.CreateTranslation(0.0f, 0.0f, (float)(0.5 + 0.5 * Math.Sin(time * 0.5)));
-                }
-                else if (m.name == "Plane_Y")
-                {
-                    mm *= Matrix4.CreateTranslation((float)(0.5 + 0.5 * Math.Sin(time * 0.5)), 0.0f, 0.0f);
-                }
-                else if (m.name == "Plane_Z")
-                {
-                    mm *= Matrix4.CreateTranslation(0.0f, (float)(0.5 + 0.5 * Math.Sin(time * 0.5)), 0.0f);
-                }
-
-                Matrix4 mm2 = Matrix4.Identity;
-                mm2 *= Matrix4.CreateTranslation(-0.5f, -0.5f, -0.5f);
-                mm2 *= Matrix4.CreateRotationX(_xRot);
-                mm2 *= Matrix4.CreateRotationY(_yRot);
-                mm2 *= Matrix4.CreateRotationZ(_zRot);
-                mm2 *= Matrix4.CreateTranslation(0.5f, 0.5f, 0.5f);
-
-                _shaderPlane.SetMatrix4("model", mm);
-                _shaderPlane.SetMatrix4("model2", mm2);
+                _shaderPlane.SetMatrix4("model", m.frame_transform);
+                _shaderPlane.SetMatrix4("model2", m.frame_transform2);
                 m.Draw();
             }
+            GL.Enable(EnableCap.CullFace);
+
 
             //
             //  coordinate system
             //
 
-            GL.Enable(EnableCap.CullFace);
-
             _shaderWidget.Use();
+            _shaderWidget.SetInt("renderMode", (int)RenderMode.Regular);
+            _shaderWidget.SetMatrix4("view", _camera.GetViewMatrix());
+            _shaderWidget.SetMatrix4("projection", _camera.GetProjectionMatrix());
             foreach (Model m in _widgets)
             {
-                _shaderWidget.SetInt("renderMode", (int)RenderMode.Regular);
-
-                Matrix4 mm = m.transform;
-                mm *= Matrix4.CreateTranslation(-0.5f, -0.5f, -0.5f);
-                if(m.name == "Rotation_Widget_X")
-                    mm *= Matrix4.CreateRotationX(_xRot);
-                if (m.name == "Rotation_Widget_Y")
-                    mm *= Matrix4.CreateRotationY(_yRot);
-                if (m.name == "Rotation_Widget_Z")
-                    mm *= Matrix4.CreateRotationZ(_zRot);
-                mm *= Matrix4.CreateTranslation(0.5f, 0.5f, 0.5f);
-
-                _shaderWidget.SetMatrix4("model", mm);
-                _shaderWidget.SetMatrix4("view", _camera.GetViewMatrix());
-                _shaderWidget.SetMatrix4("projection", _camera.GetProjectionMatrix());
+                _shaderWidget.SetMatrix4("model", m.frame_transform);
                 if(m.isSelected || m.isHovering)
                     _shaderWidget.SetVector3("color", new Vector3(1.0f, 1.0f, 0.0f));
                 else
@@ -473,16 +494,52 @@ namespace LearnOpenTK
                 GL.Enable(EnableCap.DepthTest);
             }
 
-            //
-            //  instructions
-            //
-
-            GL.Disable(EnableCap.DepthTest);
             GL.Disable(EnableCap.CullFace);
-            _shaderText.Use();
-            _texInstructions.Use(TextureUnit.Texture1);
-            _shaderText.SetMatrix4("model", _instructionsText.transform);
-            _instructionsText.Draw();
+            foreach (Model m in _planes)
+            {
+                if (!(m.isSelected || m.isHovering))
+                    continue;
+
+                _shaderPlane.Use();
+
+                // disable writing to color space
+                GL.ColorMask(false, false, false, false);
+                GL.DepthMask(false);
+
+                GL.StencilOp(StencilOp.Replace, StencilOp.Replace, StencilOp.Replace);
+                GL.StencilFunc(StencilFunction.Always, 1, 0xFF);
+                GL.StencilMask(0xFF); // enable writing to stencil
+                GL.Disable(EnableCap.DepthTest);
+
+                _shaderPlane.SetInt("renderMode", (int)RenderMode.Regular);
+                _shaderPlane.SetMatrix4("model", m.frame_transform);
+                _shaderPlane.SetMatrix4("model2", m.frame_transform2);
+                m.Draw();
+
+                GL.StencilFunc(StencilFunction.Notequal, 1, 0xFF); // only allow fragments outside the stencil
+                GL.StencilMask(0x00); // disable writing to stencil
+
+                // enable writing to color space
+                GL.ColorMask(true, true, true, true);
+                GL.DepthMask(true);
+
+                _shaderPlane.SetInt("renderMode", (int)RenderMode.Outline);
+                if (m.isSelected)
+                    _shaderPlane.SetVector3("outlineColor", new Vector3(1.0f, 1.0f, 0.0f));
+                else
+                    _shaderPlane.SetVector3("outlineColor", new Vector3(1.0f, 0.0f, 0.0f));
+                Matrix4 mm2 = m.frame_transform;
+                mm2 *= Matrix4.CreateTranslation(-0.5f, -0.5f, -0.5f);
+                mm2 *= Matrix4.CreateScale(1.02f, 1.02f, 1.0f);
+                mm2 *= Matrix4.CreateTranslation(0.5f, 0.5f, 0.5f);
+                _shaderPlane.SetMatrix4("model", mm2);
+                m.Draw();
+
+                GL.StencilFunc(StencilFunction.Always, 1, 0xFF);
+                GL.StencilMask(0x00);
+                GL.Enable(EnableCap.DepthTest);
+            }
+            GL.Enable(EnableCap.CullFace);
 
             // finish
             SwapBuffers();
@@ -537,6 +594,13 @@ namespace LearnOpenTK
             {
                 _bSpinning = !_bSpinning;
             }
+            if (input.IsKeyPressed(Keys.E))
+            {
+                foreach (Model m in _models)
+                {
+                    m.visible = !m.visible;
+                }
+            }
             if (input.IsKeyPressed(Keys.D1))
             {
                 _planes[0].visible = !_planes[0].visible;
@@ -571,6 +635,29 @@ namespace LearnOpenTK
                         if (m.objectID != m2.objectID)
                             m2.isSelected = false;
                     }
+                }
+            }
+
+            foreach (Model m in _planes)
+            {
+                if (m.objectID == (float)cval)
+                    m.isHovering = true;
+                else
+                    m.isHovering = false;
+
+                if (!_hasActedOnClick && m.isHovering && mouse.IsAnyButtonDown)
+                {
+                    m.isSelected = true;
+                    _hasActedOnClick = true;
+                    foreach (Model m2 in _planes)
+                    {
+                        if (m.objectID != m2.objectID)
+                            m2.isSelected = false;
+                    }
+                }
+                else if (!mouse.IsAnyButtonDown)
+                {
+                    m.isSelected = false;
                 }
             }
 
@@ -654,9 +741,32 @@ namespace LearnOpenTK
                             }
                         }
                     }
+                    foreach (Model m in _planes)
+                    {
+                        if (m.isSelected)
+                        {
+                            if (m.name == "Plane_X")
+                            {
+                                _xPlaneTrans += deltaX * 0.002f;
+                                _xPlaneTrans = Math.Clamp(_xPlaneTrans, 0.0f, 1.0f);
+                            }
+                            else if (m.name == "Plane_Y")
+                            {
+                                _yPlaneTrans += deltaX * 0.002f;
+                                _yPlaneTrans = Math.Clamp(_yPlaneTrans, 0.0f, 1.0f);
+                            }
+                            else if (m.name == "Plane_Z")
+                            {
+                                _zPlaneTrans += deltaX * 0.002f;
+                                _zPlaneTrans = Math.Clamp(_zPlaneTrans, 0.0f, 1.0f);
+                            }
+                        }
+                    }
                 }
 
-                if(deltaX > 0 || deltaY > 0)
+                if(mouse.X >= 0 && mouse.X < Size.X &&
+                   mouse.Y >= 0 && mouse.Y < Size.Y &&
+                   (deltaX > 0 || deltaY > 0))
                 {
                     _lastMouseMovedTime = newTime;
                     foreach (Model m in _widgets)

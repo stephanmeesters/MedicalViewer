@@ -3,7 +3,7 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using PixelFormat = OpenTK.Graphics.OpenGL4.PixelFormat;
 
-namespace LearnOpenTK
+namespace MedViewer
 {
     // A helper class, much like Shader, meant to simplify loading textures.
     public class Texture

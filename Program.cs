@@ -2,7 +2,7 @@
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 
-namespace LearnOpenTK
+namespace MedViewer
 {
     public static class Program
     {

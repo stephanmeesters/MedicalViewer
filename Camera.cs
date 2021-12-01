@@ -1,7 +1,7 @@
 using OpenTK.Mathematics;
 using System;
 
-namespace LearnOpenTK
+namespace MedViewer
 {
     public class Camera
     {

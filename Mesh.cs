@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using OpenTK.Mathematics;
 
-namespace LearnOpenTK
+namespace MedViewer
 {
 	public class Mesh
 	{
@@ -17,8 +17,6 @@ namespace LearnOpenTK
 		public readonly int numberOfIndices;
 		public readonly int numberOfAttributes;
 		public readonly int stride;
-
-		public readonly BoundingBox boundingBox;
 
 		public Mesh(List<Vector3> vertices, List<Vector3> normals,
 					List<uint> vertexIndices, List<uint> normalIndices)

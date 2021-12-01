@@ -5,7 +5,7 @@ using itk.simple;
 using System.Diagnostics;
 using OpenTK.Mathematics;
 
-namespace LearnOpenTK
+namespace MedViewer
 {
     // A helper class, much like Shader, meant to simplify loading textures.
     public class Texture3D

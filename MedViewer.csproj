@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <RootNamespace>LearnOpenTK</RootNamespace>
-    <AssemblyName>LearnOpenTK</AssemblyName>
+    <RootNamespace>MedViewer</RootNamespace>
+    <AssemblyName>MedViewer</AssemblyName>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <Platforms>AnyCPU;x64</Platforms>
   </PropertyGroup>
