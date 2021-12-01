@@ -4,6 +4,8 @@ Medical visualization demonstration app.
 
 Written in C#/.NET Core 3.1 using OpenTK.
 
+Uses 3D textures for interactive slicing within the OpenGL shaders.
+
 Built in ~40 hours as part of my software programming portfolio.
 
 Several classes (Camera.cs, Shader.cs, Texture.cs) adapted from [LearnOpenTK](https://github.com/opentk/LearnOpenTK) and (ObjLoader.cs) from [ObjRenderer](https://github.com/dabbertorres/ObjRenderer).
